@@ -61,11 +61,30 @@ app.use('/temp', express.static(path.join(__dirname, 'temp')));
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   console.log('Health check request received');
+  try {
+    res.status(200).json({
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      port: PORT,
+      uptime: process.uptime(),
+      memory: process.memoryUsage()
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      error: error.message
+    });
+  }
+});
+
+// Simple root endpoint for debugging
+app.get('/', (req, res) => {
   res.json({
-    status: 'OK',
+    message: 'DLoadly Backend is running!',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    port: PORT
+    health: '/api/health'
   });
 });
 

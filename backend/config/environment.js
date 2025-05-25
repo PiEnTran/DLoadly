@@ -24,7 +24,6 @@ class EnvironmentConfig {
 
   validateRequiredVariables() {
     const required = [
-      'PORT',
       'JWT_SECRET',
       'SESSION_SECRET',
       'COOKIE_SECRET'
