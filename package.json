@@ -4,7 +4,7 @@
   "description": "Social Media Downloader",
   "main": "start.js",
   "scripts": {
-    "start": "cd backend && node server.js",
+    "start": "node server.js",
     "dev": "concurrently --kill-others --prefix-colors \"blue,green\" --prefix \"[{name}]\" \"npm run backend\" \"npm run frontend\"",
     "run": "node run.js",
     "frontend": "cd frontend && npm run dev",

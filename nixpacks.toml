@@ -3,18 +3,17 @@ nixPkgs = ['nodejs_18', 'python3', 'ffmpeg']
 
 [phases.install]
 cmds = [
-  'cd backend',
+  'cp -r backend/* .',
   'npm ci --production'
 ]
 
 [phases.build]
 cmds = [
-  'cd backend',
   'chmod +x bin/yt-dlp'
 ]
 
 [start]
-cmd = 'cd backend && node server.js'
+cmd = 'node server.js'
 
 [variables]
 NODE_ENV = 'production'
