@@ -1,0 +1,216 @@
+:root {
+  /* Light theme colors */
+  --primary-color: #4f46e5;
+  --primary-hover: #4338ca;
+  --secondary-color: #8b5cf6;
+  --accent-color: #6366f1;
+  --background-color: #ffffff;
+  --card-background: #ffffff;
+  --card-background-secondary: #f9fafb;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+  --border-color: #e5e7eb;
+  --input-background: #f9fafb;
+  --input-border: #d1d5db;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+  --info-color: #3b82f6;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #8b5cf6 100%);
+  --gradient-button: linear-gradient(135deg, #4f46e5 0%, #8b5cf6 100%);
+  --header-background: #ffffff;
+  --header-text: #111827;
+  --header-border: #e5e7eb;
+  --footer-background: #f9fafb;
+  --footer-text: #4b5563;
+  --main-background: #f3f4f6;
+  --platform-badge-bg: #f3f4f6;
+  --platform-badge-text: #4b5563;
+  --platform-icon-bg: #ffffff;
+  --button-primary-bg: #4f46e5;
+  --button-primary-text: #ffffff;
+  --button-secondary-bg: #f3f4f6;
+  --button-secondary-text: #4b5563;
+  --input-text: #111827;
+  --input-placeholder: #9ca3af;
+  --link-color: #4f46e5;
+  --link-hover: #4338ca;
+  --nav-link-color: #4b5563;
+  --nav-link-hover: #4f46e5;
+  --nav-link-active: #4f46e5;
+  --nav-link-bg-hover: #f3f4f6;
+}
+
+[data-theme='dark'] {
+  /* Dark theme colors */
+  --primary-color: #6366f1;
+  --primary-hover: #818cf8;
+  --secondary-color: #a78bfa;
+  --accent-color: #8b5cf6;
+  --background-color: #0f172a;
+  --card-background: #1e293b;
+  --card-background-secondary: #0f172a;
+  --text-primary: #f9fafb;
+  --text-secondary: #e5e7eb;
+  --text-tertiary: #d1d5db;
+  --border-color: #334155;
+  --input-background: #1e293b;
+  --input-border: #475569;
+  --success-color: #34d399;
+  --warning-color: #fbbf24;
+  --error-color: #f87171;
+  --info-color: #60a5fa;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #a78bfa 100%);
+  --gradient-button: linear-gradient(135deg, #6366f1 0%, #a78bfa 100%);
+  --header-background: #111827;
+  --header-text: #f9fafb;
+  --header-border: #1f2937;
+  --footer-background: #111827;
+  --footer-text: #e5e7eb;
+  --main-background: #0f172a;
+  --platform-badge-bg: #1e293b;
+  --platform-badge-text: #e5e7eb;
+  --platform-icon-bg: #0f172a;
+  --button-primary-bg: #6366f1;
+  --button-primary-text: #ffffff;
+  --button-secondary-bg: #1e293b;
+  --button-secondary-text: #e5e7eb;
+  --input-text: #f9fafb;
+  --input-placeholder: #9ca3af;
+  --link-color: #818cf8;
+  --link-hover: #a5b4fc;
+  --nav-link-color: #e5e7eb;
+  --nav-link-hover: #818cf8;
+  --nav-link-active: #818cf8;
+  --nav-link-bg-hover: #1e293b;
+}
+
+body {
+  background-color: var(--main-background);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+main {
+  background-color: var(--main-background);
+  min-height: 100vh;
+}
+
+.card {
+  background-color: var(--card-background);
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-md);
+}
+
+.card-secondary {
+  background-color: var(--card-background-secondary);
+  border-color: var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary {
+  background: var(--gradient-button);
+  color: var(--button-primary-text);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--button-secondary-bg);
+  filter: brightness(0.95);
+}
+
+.input {
+  background-color: var(--input-background);
+  border-color: var(--input-border);
+  color: var(--input-text);
+}
+
+.input::placeholder {
+  color: var(--input-placeholder);
+}
+
+.header {
+  background-color: var(--header-background) !important;
+  color: var(--header-text);
+  border-bottom: 1px solid var(--header-border);
+}
+
+/* Ensure header is always dark in dark mode, regardless of scroll position */
+html.dark .header {
+  background-color: var(--header-background) !important;
+}
+
+.footer {
+  background-color: var(--footer-background);
+  color: var(--footer-text);
+}
+
+.platform-badge {
+  background-color: var(--platform-badge-bg);
+  color: var(--platform-badge-text);
+}
+
+.platform-icon {
+  background-color: var(--platform-icon-bg);
+}
+
+a {
+  color: var(--link-color);
+  transition: color 0.2s ease;
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--link-hover);
+  text-decoration: none;
+}
+
+.nav-link {
+  color: var(--nav-link-color);
+  font-weight: 500;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  margin: 0 0.5rem;
+  border: 1px solid transparent;
+  display: inline-block;
+}
+
+.nav-link:hover {
+  color: var(--nav-link-hover);
+  background-color: var(--nav-link-bg-hover);
+  border-color: var(--border-color);
+}
+
+.nav-link.active {
+  color: var(--nav-link-active);
+  font-weight: 600;
+  border-color: var(--border-color);
+  background-color: var(--nav-link-bg-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Fix for images in dark mode */
+img {
+  filter: var(--img-filter, none);
+}
+
+[data-theme='dark'] {
+  --img-filter: brightness(0.9) contrast(1.1);
+}
