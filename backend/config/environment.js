@@ -33,17 +33,10 @@ class EnvironmentConfig {
 
     if (missing.length > 0) {
       console.error('❌ Missing required environment variables:', missing);
-      console.warn('⚠️ Using default values for missing environment variables in production');
-
-      // Set default values for missing variables
-      if (!process.env.JWT_SECRET) {
-        process.env.JWT_SECRET = 'default-jwt-secret-change-in-production';
-      }
-      if (!process.env.SESSION_SECRET) {
-        process.env.SESSION_SECRET = 'default-session-secret-change-in-production';
-      }
-      if (!process.env.COOKIE_SECRET) {
-        process.env.COOKIE_SECRET = 'default-cookie-secret-change-in-production';
+      if (this.isProduction) {
+        throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+      } else {
+        console.warn('⚠️ Some environment variables are missing. Using defaults for development.');
       }
     }
   }
