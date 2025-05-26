@@ -194,7 +194,7 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
           isManualProcessing: true
         });
 
-        toast.warning(
+        toast(
           <div className="text-sm">
             <div className="font-medium mb-1">⚠️ Chuyển sang xử lý thủ công</div>
             <div className="text-xs text-gray-600">
@@ -203,7 +203,15 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
               ⏱️ Thời gian xử lý: 5-30 phút
             </div>
           </div>,
-          { duration: 8000 }
+          {
+            duration: 8000,
+            icon: '⚠️',
+            style: {
+              background: '#fef3c7',
+              color: '#92400e',
+              border: '1px solid #fbbf24'
+            }
+          }
         );
 
         setMediaData({
@@ -399,7 +407,7 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
       }
 
       if (bandwidthUsage >= 90) {
-        toast.warning(
+        toast(
           <div className="text-sm">
             <div className="font-medium mb-1">⚠️ Fshare bandwidth sắp hết!</div>
             <div className="text-xs text-gray-600">
@@ -407,7 +415,15 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
               🎯 Đã sử dụng: {bandwidthUsage.toFixed(1)}%
             </div>
           </div>,
-          { duration: 5000 }
+          {
+            duration: 5000,
+            icon: '⚠️',
+            style: {
+              background: '#fef3c7',
+              color: '#92400e',
+              border: '1px solid #fbbf24'
+            }
+          }
         );
       }
 
