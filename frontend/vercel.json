@@ -22,6 +22,15 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "VITE_API_BASE_URL": "https://dloadly-production.up.railway.app",
+    "VITE_SOCKET_URL": "https://dloadly-production.up.railway.app",
+    "VITE_FIREBASE_API_KEY": "AIzaSyDZxG9LmNdZf69uZ4ttjH7RlY5UoPamTBI",
+    "VITE_FIREBASE_AUTH_DOMAIN": "dloadly-301.firebaseapp.com",
+    "VITE_FIREBASE_PROJECT_ID": "dloadly-301",
+    "VITE_FIREBASE_STORAGE_BUCKET": "dloadly-301.firebasestorage.app",
+    "VITE_FIREBASE_MESSAGING_SENDER_ID": "311277048392",
+    "VITE_FIREBASE_APP_ID": "1:311277048392:web:377ec81519419ff7407e7d",
+    "VITE_FIREBASE_MEASUREMENT_ID": "G-HQXTFFF5BK"
   }
 }
