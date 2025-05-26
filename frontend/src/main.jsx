@@ -19,6 +19,7 @@ import AdminRoute from './components/AdminRoute.jsx'
 import { AuthProvider } from './contexts/AuthContext.jsx'
 import { RoleProvider } from './contexts/RoleContext.jsx'
 import './index.css'
+import './debug.js'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
