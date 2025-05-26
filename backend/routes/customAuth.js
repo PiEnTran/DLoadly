@@ -27,16 +27,12 @@ router.post('/send-verification-email', async (req, res) => {
       });
     }
 
-    // TEMPORARY FIX: Always bypass email verification in production for now
-    if (process.env.NODE_ENV === 'production') {
-      console.log('⚠️ TEMPORARY: Bypassing email verification in production');
-
-      return res.json({
-        success: true,
-        message: 'Email xác nhận đã được gửi thành công (Bypass Mode)',
-        messageId: 'bypass-mode-' + Date.now(),
-        devMode: true,
-        note: 'Email verification bypassed - use code: 123456'
+    // Check if email service is configured
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      console.log('⚠️ Email service not configured - EMAIL_USER or EMAIL_PASSWORD missing');
+      return res.status(500).json({
+        success: false,
+        error: 'Email service not configured'
       });
     }
 
@@ -112,48 +108,7 @@ router.post('/verify-email-code', async (req, res) => {
       });
     }
 
-    // TEMPORARY FIX: Always accept dummy code in production for now
-    if (process.env.NODE_ENV === 'production' && code === '123456') {
-      console.log('⚠️ TEMPORARY: Using bypass verification code in production');
 
-      try {
-        // Get user by email from Firebase Auth
-        const userRecord = await admin.auth().getUserByEmail(email);
-
-        // Update email verification status in Firebase
-        await admin.auth().updateUser(userRecord.uid, {
-          emailVerified: true
-        });
-
-        return res.json({
-          success: true,
-          message: 'Email đã được xác nhận thành công! 🎉 (Bypass Mode)',
-          email: email,
-          verifiedAt: new Date().toISOString(),
-          devMode: true
-        });
-
-      } catch (firebaseError) {
-        console.error('Firebase error during verification:', firebaseError);
-
-        return res.json({
-          success: true,
-          message: 'Email đã được xác nhận thành công! 🎉 (Bypass Mode)',
-          email: email,
-          verifiedAt: new Date().toISOString(),
-          devMode: true,
-          note: 'Verification completed but user may need to re-login'
-        });
-      }
-    }
-
-    // If wrong code in production, show error
-    if (process.env.NODE_ENV === 'production' && code !== '123456') {
-      return res.status(400).json({
-        success: false,
-        error: 'Mã xác nhận không đúng. Sử dụng mã: 123456 (Bypass Mode)'
-      });
-    }
 
     // Verify code
     const verification = customAuthEmailService.verifyCode(code, email);
