@@ -9,7 +9,7 @@ class FshareService {
     this.userInfo = null;
     this.dailyQuotaUsed = 0;
     this.dailyQuotaLimit = 150 * 1024 * 1024 * 1024; // 150GB in bytes
-    this.isEnabled = process.env.FSHARE_ENABLED === 'true';
+    this.isEnabled = process.env.FSHARE_ENABLED === 'true' || process.env.FSHARE_ENABLE === 'true';
 
     // Credentials from environment
     this.credentials = {
