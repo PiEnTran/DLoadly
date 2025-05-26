@@ -28,7 +28,15 @@ router.post('/send-verification-email', async (req, res) => {
     }
 
     // TEMPORARY FIX: Skip email verification in production if email service not configured
-    if (process.env.NODE_ENV === 'production' && (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD)) {
+    const isEmailConfigured = process.env.EMAIL_USER && process.env.EMAIL_PASSWORD;
+    console.log('🔍 Email Config Check:', {
+      NODE_ENV: process.env.NODE_ENV,
+      EMAIL_USER: process.env.EMAIL_USER ? 'Set' : 'Not set',
+      EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? 'Set' : 'Not set',
+      isEmailConfigured
+    });
+
+    if (process.env.NODE_ENV === 'production' && !isEmailConfigured) {
       console.log('⚠️ Email service not configured in production - skipping email verification');
 
       // Generate a dummy verification code for testing
