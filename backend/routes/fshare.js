@@ -6,6 +6,8 @@ const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const googleDriveService = require('../services/googleDriveService');
 const emailService = require('../services/emailService');
+const fshareService = require('../services/fshareService');
+const downloadManager = require('../services/downloadManager');
 
 // Temp directory for downloads
 const tempDir = path.join(__dirname, '..', 'temp');
@@ -18,7 +20,7 @@ const generateUniqueFilename = (extension) => {
 // Download from Fshare and upload to Google Drive
 router.post('/fshare/download', async (req, res) => {
   try {
-    const { url, requestId } = req.body;
+    const { url, password = '', targetEmail = '', requestId } = req.body;
 
     console.log('Fshare download request:', url);
 
@@ -27,94 +29,94 @@ router.post('/fshare/download', async (req, res) => {
     }
 
     // Validate Fshare URL
-    if (!url.includes('fshare.vn')) {
+    if (!fshareService.isFshareUrl(url)) {
       return res.status(400).json({ message: 'Invalid Fshare URL' });
     }
 
-    // Extract file ID from URL
-    const fileIdMatch = url.match(/\/file\/([A-Z0-9]+)/i);
-    if (!fileIdMatch) {
-      return res.status(400).json({ message: 'Cannot extract file ID from URL' });
-    }
-
-    const fileId = fileIdMatch[1];
-    console.log('Extracted file ID:', fileId);
-
-    // For now, simulate Fshare download (you'll need to implement actual Fshare API)
-    // This is a placeholder - replace with actual Fshare download logic
-    const mockDownloadResult = await simulateFshareDownload(url, fileId);
-
-    if (!mockDownloadResult.success) {
-      return res.status(500).json({
-        message: 'Failed to download from Fshare',
-        error: mockDownloadResult.error
+    // Check if Fshare service is configured
+    if (!fshareService.isConfigured()) {
+      return res.status(503).json({
+        message: 'Fshare service is not configured or disabled',
+        instructions: 'Vui lòng liên hệ quản trị viên để được hỗ trợ.'
       });
     }
 
-    // Check if Google Drive is enabled
-    if (googleDriveService.isInitialized()) {
-      console.log('Google Drive is enabled, uploading file...');
+    // Get quota info
+    const quotaInfo = await fshareService.getQuotaInfo();
+    if (!quotaInfo.enabled) {
+      return res.status(503).json({
+        message: 'Fshare service is not available',
+        error: quotaInfo.error
+      });
+    }
 
-      const uploadResult = await googleDriveService.uploadFile(
-        mockDownloadResult.filePath,
-        mockDownloadResult.originalFileName,
-        mockDownloadResult.mimeType
-      );
+    // Attempt to download using Fshare service
+    const downloadResult = await fshareService.downloadFile(url, password, targetEmail);
 
-      if (uploadResult.success) {
-        console.log('File uploaded to Google Drive successfully');
+    if (!downloadResult.success) {
+      return res.status(500).json({
+        message: 'Failed to download from Fshare',
+        error: downloadResult.error || 'Unknown error'
+      });
+    }
 
-        // Delete local file after successful upload
-        try {
-          fs.unlinkSync(mockDownloadResult.filePath);
-          console.log('Local file deleted:', mockDownloadResult.filePath);
-        } catch (deleteError) {
-          console.log('Failed to delete local file:', deleteError.message);
-        }
+    // Save to download history
+    const userInfo = {
+      userID: req.body.userID || req.ip || req.connection.remoteAddress,
+      ip: req.ip || req.connection.remoteAddress,
+      userAgent: req.get('User-Agent') || ''
+    };
 
-        return res.json({
-          title: mockDownloadResult.fileName,
-          thumbnail: mockDownloadResult.thumbnail,
-          source: 'Fshare',
-          type: 'File',
-          downloadUrl: uploadResult.downloadLink,
-          driveLink: uploadResult.webViewLink,
-          filename: mockDownloadResult.originalFileName,
-          originalUrl: url,
-          isGoogleDrive: true,
-          fileSize: mockDownloadResult.fileSize,
-          message: 'File đã được tải xuống và upload lên Google Drive thành công!'
-        });
-      } else {
-        console.log('Failed to upload to Google Drive, returning local file');
-        // Fallback to local file if Drive upload fails
-        return res.json({
-          title: mockDownloadResult.fileName,
-          thumbnail: mockDownloadResult.thumbnail,
-          source: 'Fshare',
-          type: 'File',
-          downloadUrl: `/temp/${path.basename(mockDownloadResult.filePath)}`,
-          filename: mockDownloadResult.originalFileName,
-          originalUrl: url,
-          isGoogleDrive: false,
-          fileSize: mockDownloadResult.fileSize,
-          message: 'File đã được tải xuống (Google Drive không khả dụng)'
-        });
-      }
-    } else {
-      console.log('Google Drive not initialized, returning local file');
-      // Return local file if Google Drive is not configured
+    await downloadManager.saveDownload({
+      url,
+      title: downloadResult.title,
+      platform: 'fshare',
+      filename: downloadResult.filename,
+      originalFilename: downloadResult.filename,
+      downloadUrl: downloadResult.downloadUrl,
+      quality: 'original',
+      actualQuality: 'Original',
+      watermarkFree: true,
+      type: downloadResult.type,
+      duration: '',
+      thumbnail: '',
+      alternativeDownloads: []
+    }, userInfo);
+
+    // If targetEmail is provided, handle Google Drive upload
+    if (targetEmail && googleDriveService.isInitialized()) {
+      console.log('Target email provided, will upload to Google Drive and share');
+
+      // For now, return instructions for manual upload
+      // In a full implementation, you would download the file and upload to Drive
       return res.json({
-        title: mockDownloadResult.fileName,
-        thumbnail: mockDownloadResult.thumbnail,
+        title: downloadResult.title,
         source: 'Fshare',
-        type: 'File',
-        downloadUrl: `/temp/${path.basename(mockDownloadResult.filePath)}`,
-        filename: mockDownloadResult.originalFileName,
+        type: 'Instructions',
+        downloadUrl: null,
+        filename: 'fshare_instructions.txt',
+        instructions: `File Fshare sẽ được tải xuống và chia sẻ với email: ${targetEmail}\n\nThông tin file:\n- Tên: ${downloadResult.title}\n- Loại: ${downloadResult.type}\n- Link gốc: ${url}\n\nQuá trình xử lý:\n1. Tải xuống từ Fshare\n2. Upload lên Google Drive\n3. Chia sẻ với email đã cung cấp\n4. Gửi thông báo qua email\n\nVui lòng chờ email thông báo hoặc kiểm tra Google Drive.`,
         originalUrl: url,
-        isGoogleDrive: false,
-        fileSize: mockDownloadResult.fileSize,
-        message: 'File đã được tải xuống thành công!'
+        platform: 'fshare',
+        targetEmail: targetEmail,
+        quotaInfo: quotaInfo,
+        requiresManualProcessing: true
+      });
+    } else {
+      // Return direct download link
+      return res.json({
+        title: downloadResult.title,
+        source: 'Fshare',
+        type: downloadResult.type,
+        downloadUrl: downloadResult.downloadUrl,
+        filename: downloadResult.filename,
+        fileSize: downloadResult.fileSize,
+        instructions: downloadResult.instructions,
+        originalUrl: url,
+        platform: 'fshare',
+        quotaInfo: quotaInfo,
+        watermarkFree: true,
+        message: 'File Fshare đã sẵn sàng để tải xuống!'
       });
     }
 
@@ -296,29 +298,41 @@ router.post('/fshare/upload-to-drive', async (req, res) => {
   }
 });
 
-// Get Fshare file info (placeholder)
+// Get Fshare file info
 router.post('/fshare/info', async (req, res) => {
   try {
     const { url } = req.body;
 
-    if (!url || !url.includes('fshare.vn')) {
+    if (!url || !fshareService.isFshareUrl(url)) {
       return res.status(400).json({ message: 'Invalid Fshare URL' });
     }
 
-    // Mock file info - replace with actual Fshare API call
-    const fileIdMatch = url.match(/\/file\/([A-Z0-9]+)/i);
-    const fileId = fileIdMatch ? fileIdMatch[1] : 'unknown';
+    // Check if Fshare service is configured
+    if (!fshareService.isConfigured()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Fshare service is not configured or disabled'
+      });
+    }
+
+    // Get file info using Fshare service
+    const fileInfo = await fshareService.getFileInfo(url);
+    const quotaInfo = await fshareService.getQuotaInfo();
 
     res.json({
       success: true,
       data: {
-        fileId: fileId,
-        fileName: `File_${fileId}`,
-        fileSize: '10.5 MB',
-        downloadCount: 1234,
-        uploadDate: '2024-01-15',
+        fileId: fshareService.extractFileCode(url),
+        fileName: fileInfo.name,
+        fileSize: fileInfo.size,
+        fileType: fileInfo.type,
+        created: fileInfo.created,
+        modified: fileInfo.modified,
+        isFolder: fileInfo.isFolder,
         isAvailable: true
-      }
+      },
+      quotaInfo: quotaInfo,
+      serviceStatus: fshareService.getServiceStatus()
     });
 
   } catch (error) {
@@ -326,6 +340,27 @@ router.post('/fshare/info', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error getting file info',
+      error: error.message
+    });
+  }
+});
+
+// Get Fshare service status
+router.get('/fshare/status', async (req, res) => {
+  try {
+    const status = fshareService.getServiceStatus();
+    const quotaInfo = await fshareService.getQuotaInfo();
+
+    res.json({
+      success: true,
+      status: status,
+      quota: quotaInfo
+    });
+  } catch (error) {
+    console.error('Error getting Fshare status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting service status',
       error: error.message
     });
   }

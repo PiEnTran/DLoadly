@@ -5,7 +5,8 @@ const {
   downloadTikTok,
   downloadInstagram,
   downloadFacebook,
-  downloadTwitter
+  downloadTwitter,
+  downloadFshare
 } = require('../utils/mediaDownloader');
 const downloadManager = require('../services/downloadManager');
 
@@ -74,12 +75,7 @@ router.post('/download', async (req, res) => {
       });
     }
 
-    if (platform === 'fshare') {
-      console.log('Error: Fshare URL should use the dedicated endpoint');
-      return res.status(400).json({
-        message: 'Vui lòng sử dụng endpoint riêng cho Fshare'
-      });
-    }
+    // Fshare is now supported in main download endpoint
 
     let result;
     console.log(`Attempting to download from ${platform} with quality: ${quality || 'default'}`);
@@ -105,6 +101,12 @@ router.post('/download', async (req, res) => {
         case 'twitter':
           console.log('Downloading from Twitter...');
           result = await downloadTwitter(url, quality);
+          break;
+        case 'fshare':
+          console.log('Processing Fshare file...');
+          // Extract password and targetEmail from request body
+          const { password = '', targetEmail = '' } = req.body;
+          result = await downloadFshare(url, password, targetEmail);
           break;
         default:
           console.log('Error: Unsupported platform:', platform);

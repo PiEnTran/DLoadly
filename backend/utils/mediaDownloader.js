@@ -1954,10 +1954,148 @@ const downloadTwitter = async (url, quality = 'highest') => {
   }
 };
 
+// Fshare downloader with manual processing fallback
+const downloadFshare = async (url, password = '', targetEmail = '') => {
+  try {
+    console.log(`Processing Fshare file: ${url}`);
+
+    const fshareService = require('../services/fshareService');
+
+    // Extract file code for display
+    const fileCode = extractFshareFileCode(url);
+    const displayTitle = fileCode ? `Fshare File ${fileCode}` : 'Fshare File';
+
+    // Check if Fshare service is configured and working
+    if (!fshareService.isConfigured()) {
+      return createFshareManualInstructions(url, password, targetEmail, displayTitle, 'SERVICE_NOT_CONFIGURED');
+    }
+
+    // Try automatic download first
+    try {
+      const result = await fshareService.downloadFile(url, password, targetEmail);
+
+      if (result.success) {
+        console.log('✅ Fshare automatic download successful:', result.title);
+        return {
+          title: result.title,
+          source: 'Fshare',
+          type: result.type,
+          downloadUrl: result.downloadUrl,
+          filename: result.filename,
+          fileSize: result.fileSize,
+          instructions: result.instructions,
+          originalUrl: url,
+          platform: 'fshare',
+          targetEmail: targetEmail,
+          watermarkFree: true,
+          isAutomatic: true
+        };
+      }
+    } catch (apiError) {
+      console.log('⚠️ Fshare API failed, falling back to manual processing:', apiError.message);
+    }
+
+    // Fallback to manual processing
+    return createFshareManualInstructions(url, password, targetEmail, displayTitle, 'API_FAILED');
+
+  } catch (error) {
+    console.error('Fshare processing error:', error);
+    return createFshareManualInstructions(url, password, targetEmail, 'Fshare File', 'PROCESSING_ERROR', error.message);
+  }
+};
+
+// Helper function to extract file code from Fshare URL
+const extractFshareFileCode = (url) => {
+  try {
+    const patterns = [
+      /fshare\.vn\/file\/([A-Z0-9]+)/i,
+      /www\.fshare\.vn\/file\/([A-Z0-9]+)/i,
+      /https?:\/\/(?:www\.)?fshare\.vn\/file\/([A-Z0-9]+)/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+};
+
+// Helper function to create manual processing instructions
+const createFshareManualInstructions = (url, password, targetEmail, title, reason, errorDetails = '') => {
+  let instructions = `🔄 FSHARE - XỬ LÝ THỦ CÔNG\n\n`;
+  instructions += `📁 File: ${title}\n`;
+  instructions += `🔗 Link: ${url}\n`;
+
+  if (password) {
+    instructions += `🔐 Mật khẩu: ${password}\n`;
+  }
+
+  if (targetEmail) {
+    instructions += `📧 Email nhận: ${targetEmail}\n`;
+  }
+
+  instructions += `\n📋 TRẠNG THÁI:\n`;
+
+  switch (reason) {
+    case 'SERVICE_NOT_CONFIGURED':
+      instructions += `❌ Dịch vụ Fshare chưa được cấu hình\n`;
+      instructions += `👨‍💻 Quản trị viên cần thiết lập API credentials\n`;
+      break;
+    case 'API_FAILED':
+      instructions += `⚠️ API Fshare tạm thời không khả dụng\n`;
+      instructions += `🔄 Đang chuyển sang xử lý thủ công\n`;
+      break;
+    case 'PROCESSING_ERROR':
+      instructions += `❌ Lỗi xử lý: ${errorDetails}\n`;
+      break;
+    default:
+      instructions += `🔄 Đang xử lý thủ công\n`;
+  }
+
+  instructions += `\n📝 QUY TRÌNH XỬ LÝ:\n`;
+  instructions += `1. ✅ Yêu cầu đã được ghi nhận\n`;
+  instructions += `2. 🔄 Quản trị viên sẽ tải file từ Fshare\n`;
+  instructions += `3. ☁️ Upload lên Google Drive\n`;
+
+  if (targetEmail) {
+    instructions += `4. 📧 Chia sẻ với email: ${targetEmail}\n`;
+    instructions += `5. 📬 Gửi thông báo hoàn thành\n`;
+  } else {
+    instructions += `4. 📬 Thông báo khi hoàn thành\n`;
+  }
+
+  instructions += `\n⏱️ THỜI GIAN XỬ LÝ: 15-30 phút\n`;
+  instructions += `📞 HỖ TRỢ: Liên hệ quản trị viên nếu cần\n`;
+
+  return {
+    title: title,
+    source: 'Fshare',
+    type: 'Instructions',
+    downloadUrl: null,
+    filename: 'fshare_manual_processing.txt',
+    instructions: instructions,
+    originalUrl: url,
+    platform: 'fshare',
+    targetEmail: targetEmail,
+    requiresManualDownload: true,
+    isManualProcessing: true,
+    fileCode: extractFshareFileCode(url),
+    hasPassword: !!password,
+    processingReason: reason,
+    watermarkFree: true
+  };
+};
+
 module.exports = {
   downloadYouTube,
   downloadTikTok,
   downloadInstagram,
   downloadFacebook,
-  downloadTwitter
+  downloadTwitter,
+  downloadFshare
 };
