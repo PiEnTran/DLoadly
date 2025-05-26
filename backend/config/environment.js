@@ -56,7 +56,24 @@ class EnvironmentConfig {
 
   get corsOrigin() {
     if (this.isProduction) {
-      return process.env.CORS_ORIGIN || process.env.FRONTEND_URL;
+      // Fix potential Railway environment variable corruption
+      let corsOrigin = process.env.CORS_ORIGIN || process.env.FRONTEND_URL;
+
+      // Debug logging
+      console.log('🔍 CORS Debug:', {
+        CORS_ORIGIN: process.env.CORS_ORIGIN,
+        FRONTEND_URL: process.env.FRONTEND_URL,
+        corsOrigin: corsOrigin
+      });
+
+      // Fix corrupted URL (missing 'h' in 'https')
+      if (corsOrigin && corsOrigin.startsWith('ttps://')) {
+        corsOrigin = 'h' + corsOrigin;
+        console.log('🔧 Fixed corrupted CORS URL:', corsOrigin);
+      }
+
+      // Fallback to hardcoded production URL if environment variables are corrupted
+      return corsOrigin || 'https://d-loadly.vercel.app';
     }
     return ['http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176'];
   }
