@@ -1,0 +1,911 @@
+{
+	"info": {
+		"_postman_id": "91f31082-795a-4210-82c6-a798e893323f",
+		"name": "Fshare API - Integration - vr.FP01.2",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "45323005"
+	},
+	"item": [
+		{
+			"name": "[v2] Login - Logout - User info",
+			"item": [
+				{
+					"name": "Login - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body had field 'token'\", function () {\r",
+									"    pm.expect(pm.response.text()).to.include(\"token\");\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body had field 'code' is 200\", function () {\r",
+									"    let jsonData = JSON.parse(responseBody);\r",
+									"    pm.expect(jsonData.code).to.equal(200);\r",
+									"});\r",
+									"\r",
+									"let jsonData = JSON.parse(responseBody);\r",
+									"if(typeof jsonData.token != undefined){\r",
+									"    postman.setEnvironmentVariable(\"token\", jsonData.token);\r",
+									"    postman.setEnvironmentVariable(\"session_id\", jsonData.session_id);\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"user_email\" : \"{{your_email_login}}\",\n\t\"password\":\t\"{{your_password}}\",\n\t\"app_key\" : \"{{app_key}}\"\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/user/login",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body had field 'code' is 200\", function () {\r",
+									"    let jsonData = JSON.parse(responseBody);\r",
+									"    pm.expect(jsonData.code).to.equal(200);\r",
+									"    if(jsonData.code == 200){\r",
+									"        pm.environment.set(\"token\", \"\");\r",
+									"        pm.environment.set(\"session_id\", \"\");\r",
+									"    }\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{domain_api_v2}}/api/user/logout",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get user's Info - v2",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/user/get",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"user",
+								"get"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "[v2] File manager",
+			"item": [
+				{
+					"name": "[Upload.Step01/02] Take upload link - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body had field 'code'\", function () {\r",
+									"    pm.expect(pm.response.text()).to.include(\"code\");\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Body had field 'location'\", function () {\r",
+									"    pm.expect(pm.response.text()).to.include(\"location\");\r",
+									"});\r",
+									"\r",
+									"let jsonData = JSON.parse(responseBody);\r",
+									"if(typeof jsonData.code != undefined && jsonData.code == 200){\r",
+									"    postman.setEnvironmentVariable(\"upload_link\", jsonData.location);\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json; charset=UTF-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Game-Inside(2).rar\",\n    \"size\": \"1278250929\",\n    \"path\": \"/\",\n    \"token\": \"{{token}}\",\n    \"secured\": 1\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/session/upload",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"session",
+								"upload"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[Upload.Step01/02] Upload file by Upload link - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": "/F:/Game-Inside.rar"
+							}
+						},
+						"url": {
+							"raw": "{{upload_link}}",
+							"host": [
+								"{{upload_link}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Take Download link",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "efdf39c90189ddfbff339ae344c28db5f6c11885",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "User-Agent",
+								"value": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36",
+								"type": "text"
+							},
+							{
+								"key": "cookie",
+								"value": "session_id=vanlnja3gigtajcslfs5c0s7ff; path=/; domain=api.fshare.vn; HttpOnly;",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"zipflag\" : 0,\n\t\"url\" : \"https://www.fshare.vn/file/ACNYKM94HTE8QOX\",\n\t\"password\" : \"\",\n\t\"token\": \"{{token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/session/download",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"session",
+								"download"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User's File/Folder list - v2",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/list?pageIndex=0&dirOnly=0&limit=60&path=jre",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"list"
+							],
+							"query": [
+								{
+									"key": "pageIndex",
+									"value": "0",
+									"description": "Bắt đầu từ 0, 1, 2, 3, ..."
+								},
+								{
+									"key": "dirOnly",
+									"value": "0",
+									"description": "0: lấy cả folder và file; 1: chỉ lấy folder"
+								},
+								{
+									"key": "limit",
+									"value": "60",
+									"description": "Số lượng file và folder trong một page"
+								},
+								{
+									"key": "path",
+									"value": "jre",
+									"description": "Đường dẫn. Mặc định là \"\". Exp: \"myFolder01/myFolder02\""
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Items Total in User's Folder - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json; charset=UTF-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{token}}\",\n    \"url\": \"https://www.fshare.vn/folder/K3DCCFRC49M7\",\n    \"have_file\": false\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/getTotalFileInFolder",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"getTotalFileInFolder"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Folder - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json; charset=UTF-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"folder test\",\n    \"token\": \"{{token}}\",\n    \"in_dir\": \"0 or <linkcode>\"\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/createFolder",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"createFolder"
+							]
+						},
+						"description": "Trường <b>\"in_dir\"</b> để là 0 nếu tạo folder ở thư mục gốc. Hoặc là <b>linkcode</b> của folder cần tạo folder trong đó."
+					},
+					"response": []
+				},
+				{
+					"name": "Rename File/Folder - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json; charset=UTF-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{token}}\",\n    \"new_name\": \"Anh 1\",\n    \"file\": \"<linkcode>\"\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/rename",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"rename"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Move File/Folder - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json; charset=UTF-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{token}}\",\n    \"item\": [\"<linkcode>\", \"<linkcode>\"],\n    \"to\": \"0 or <linkcode>\"\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/move",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"move"
+							]
+						},
+						"description": "Trường <b>\"in_dir\"</b> để là 0 nếu tạo folder ở thư mục gốc. Hoặc là <b>linkcode</b> của folder cần tạo folder trong đó."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete File/Folder - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json; charset=UTF-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{token}}\",\n    \"item\": [\"<linkcode>\", \"<linkcode>\"]\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/delete",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"delete"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Set pass for Files - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json; charset=UTF-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{token}}\",\n    \"items\": [\"T2LIJUCYHAM2\", \"BIDZNXHBTWT3\"],\n    \"pass\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/createFilePass",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"createFilePass"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "On/Off Secure for Files - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json; charset=UTF-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{token}}\",\n    \"items\": [\"T2LIJUCYHAM2\", \"BIDZNXHBTWT3\"],\n    \"status\": 1\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/changeSecure",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"changeSecure"
+							]
+						},
+						"description": "Field 'status': 1 là bật dung lượng đảm bảo cho file; 0 là tắt dung lượng đảm bảo"
+					},
+					"response": []
+				},
+				{
+					"name": "On/Off Directlink for Files - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json; charset=UTF-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{token}}\",\n    \"items\": [\"T2LIJUCYHAM2\", \"BIDZNXHBTWT3\"],\n    \"status\": 1\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/share/SetDirectLink",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"share",
+								"SetDirectLink"
+							]
+						},
+						"description": "Field 'status': 1 là bật Directlink cho file; 0 là tắt"
+					},
+					"response": []
+				},
+				{
+					"name": "Copy Files to Folder - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json; charset=UTF-8"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{token}}\",\n    \"linkcode\": \"7UIONXF3UQW3\",\n    \"path\": \"7VL27M8147E5\",\n    \"confirm\": true\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/duplicate",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"duplicate"
+							]
+						},
+						"description": "Field 'status': 1 là bật Directlink cho file; 0 là tắt"
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "[v2] Public Folder",
+			"item": [
+				{
+					"name": "Get item list from shared link - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"token\" : \"{{token}}\",\n\t\"url\":\t\"https://www.fshare.vn/folder/84NMWF4ZEP59\",\n\t\"dirOnly\": 0,\n\t\"pageIndex\": 0,\n\t\"limit\": 60\n}"
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/getFolderList",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"getFolderList"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "[v2] Favorite",
+			"item": [
+				{
+					"name": "Get user's Favorite list - v2 ",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/listFavorite",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"listFavorite"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add/Remove to Favorite - v2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Environment to be Fshare - API - 062020\", function () {\r",
+									"    pm.expect(pm.environment.get(\"env\")).to.equal(\"Fshare - API - 062020\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"items\": [\"43Q6CW99AFZF\"],\r\n    \"status\": 0,\r\n    \"token\": \"{{token}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{domain_api_v2}}/api/fileops/ChangeFavorite",
+							"host": [
+								"{{domain_api_v2}}"
+							],
+							"path": [
+								"api",
+								"fileops",
+								"ChangeFavorite"
+							]
+						},
+						"description": "Trường \"status\": 1 là thêm, 0 là xóa khỏi Favorite"
+					},
+					"response": []
+				}
+			],
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		}
+	]
+}

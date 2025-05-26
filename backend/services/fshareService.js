@@ -3,8 +3,9 @@ const environment = require('../config/environment');
 
 class FshareService {
   constructor() {
-    this.baseURL = 'https://api.fshare.vn/api';
+    this.baseURL = process.env.FSHARE_API_URL || 'https://api2.fshare.vn';
     this.sessionToken = null;
+    this.sessionId = null;
     this.tokenExpiry = null;
     this.userInfo = null;
     this.dailyQuotaUsed = 0;
@@ -50,7 +51,7 @@ class FshareService {
         appKey: this.credentials.app_key
       });
 
-      const response = await axios.post(`${this.baseURL}/user/login`, {
+      const response = await axios.post(`${this.baseURL}/api/user/login`, {
         user_email: this.credentials.user_email,
         password: this.credentials.password,
         app_key: this.credentials.app_key
@@ -134,17 +135,16 @@ class FshareService {
       const downloadToken = await this.getDownloadToken(fileCode, password);
 
       // Get actual download link
-      const response = await axios.post(`${this.baseURL}/session/download`, {
+      const response = await axios.post(`${this.baseURL}/api/session/download`, {
         zipflag: 0,
         url: fshareUrl,
         password: password,
-        token: downloadToken
+        token: this.sessionToken
       }, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.sessionToken}`,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Cookie': `session_id=${this.sessionToken}`
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         },
         timeout: 30000
       });
