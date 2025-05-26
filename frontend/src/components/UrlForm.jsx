@@ -130,14 +130,18 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
       });
 
       // Gọi API automatic download với targetEmail
-      const response = await api.post('/api/download', {
+      const apiRequestData = {
         url,
         requestId: saveResult.id,
         userID: currentUser.uid,
         targetEmail: email, // Email nhận file
         password: '', // Có thể thêm password input sau
         platform: 'Fshare'
-      });
+      };
+
+      console.log('🔍 DEBUG - Sending request to backend:', apiRequestData);
+
+      const response = await api.post('/api/download', apiRequestData);
 
       toast.dismiss(loadingToast);
 
@@ -243,6 +247,9 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
       setRecipientEmail('');
     } catch (error) {
       console.error('Error submitting Fshare request:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error config:', error.config);
 
       // Cập nhật request với trạng thái failed
       if (saveResult?.id) {
@@ -253,7 +260,8 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
         });
       }
 
-      toast.error('Có lỗi xảy ra khi tải xuống: ' + (error.response?.data?.message || error.message));
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+      toast.error('Có lỗi xảy ra khi tải xuống: ' + errorMessage);
     } finally {
       setIsSubmitting(false);
       setLoading(false);
