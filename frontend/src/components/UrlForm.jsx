@@ -145,6 +145,8 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
 
       toast.dismiss(loadingToast);
 
+      console.log('🔍 DEBUG - Backend response:', response.data);
+
       if (response.data.isAutomatic && response.data.uploadedToDrive) {
         // Automatic download thành công
         await requestService.updateRequest(saveResult.id, {
