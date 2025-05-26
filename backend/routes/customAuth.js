@@ -27,12 +27,19 @@ router.post('/send-verification-email', async (req, res) => {
       });
     }
 
+    // Debug email configuration
+    console.log('🔍 Email Config Debug:', {
+      EMAIL_USER: process.env.EMAIL_USER ? 'Set' : 'Not set',
+      EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? 'Set (length: ' + process.env.EMAIL_PASSWORD.length + ')' : 'Not set',
+      NODE_ENV: process.env.NODE_ENV
+    });
+
     // Check if email service is configured
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
       console.log('⚠️ Email service not configured - EMAIL_USER or EMAIL_PASSWORD missing');
       return res.status(500).json({
         success: false,
-        error: 'Email service not configured'
+        error: 'Email service not configured - missing credentials'
       });
     }
 

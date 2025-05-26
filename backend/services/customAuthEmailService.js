@@ -11,6 +11,11 @@ class CustomAuthEmailService {
 
   async initialize() {
     try {
+      console.log('🔍 Email Service Init Debug:', {
+        EMAIL_USER: process.env.EMAIL_USER ? 'Set' : 'Not set',
+        EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? 'Set (length: ' + process.env.EMAIL_PASSWORD.length + ')' : 'Not set'
+      });
+
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -20,12 +25,17 @@ class CustomAuthEmailService {
       });
 
       if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+        console.log('🔄 Verifying email transporter...');
         await this.transporter.verify();
-        console.log('✅ Custom Auth Email Service initialized');
+        console.log('✅ Custom Auth Email Service initialized successfully');
         this.initialized = true;
+      } else {
+        console.log('⚠️ Email credentials missing - service not initialized');
+        this.initialized = false;
       }
     } catch (error) {
       console.error('❌ Custom Auth Email Service failed:', error.message);
+      console.error('❌ Full error:', error);
       this.initialized = false;
     }
   }
