@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaLink, FaSpinner, FaYoutube, FaTiktok, FaFacebook, FaInstagram, FaTwitter, FaDatabase, FaDownload, FaCog, FaExclamationTriangle, FaUser, FaEnvelope, FaLock, FaImage } from 'react-icons/fa';
+import { FaLink, FaSpinner, FaYoutube, FaTiktok, FaFacebook, FaInstagram, FaTwitter, FaDatabase, FaExclamationTriangle, FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { requestService, userService } from '../services/firebaseService';
 import { useSettings } from '../hooks/useSettings';
 import DownloadProgress from './DownloadProgress';
+import api from '../services/api';
 
 const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,6 +93,8 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
     setLoading(true);
     setShowEmailModal(false);
 
+    let saveResult = null;
+
     try {
       // Lưu request vào Firestore trước
       const requestData = {
@@ -107,7 +110,7 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
       console.log('🔍 DEBUG - Request data:', requestData);
       console.log('🔍 DEBUG - Recipient email:', email);
 
-      const saveResult = await requestService.createRequest(requestData);
+      saveResult = await requestService.createRequest(requestData);
 
       if (!saveResult.success) {
         throw new Error('Không thể lưu yêu cầu: ' + saveResult.error);
@@ -127,7 +130,7 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
       });
 
       // Gọi API automatic download với targetEmail
-      const response = await axios.post('/api/download', {
+      const response = await api.post('/download', {
         url,
         requestId: saveResult.id,
         userID: currentUser.uid,
@@ -462,7 +465,7 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
         status: 'processing'
       });
 
-      const response = await axios.post(endpoint, {
+      const response = await api.post('/download', {
         url,
         requestId: saveResult.id,
         userID: currentUser.uid // Pass Firebase userID for storage management
