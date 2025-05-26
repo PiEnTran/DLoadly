@@ -79,6 +79,29 @@ app.get('/api/health', (req, res) => {
   }
 });
 
+// Debug endpoint for CORS configuration
+app.get('/api/debug/cors', (req, res) => {
+  console.log('CORS debug request received');
+  try {
+    res.status(200).json({
+      corsOrigin: config.corsOrigin,
+      frontendUrl: config.frontendUrl,
+      envVars: {
+        CORS_ORIGIN: process.env.CORS_ORIGIN,
+        FRONTEND_URL: process.env.FRONTEND_URL,
+        NODE_ENV: process.env.NODE_ENV
+      },
+      isProduction: config.isProduction
+    });
+  } catch (error) {
+    console.error('CORS debug error:', error);
+    res.status(500).json({
+      status: 'ERROR',
+      error: error.message
+    });
+  }
+});
+
 // Simple root endpoint for debugging
 app.get('/', (req, res) => {
   res.json({
