@@ -74,7 +74,7 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
     }
   }, [isAuthenticated, currentUser]);
 
-  // Function xử lý Fshare request với email đã chọn
+  // Function xử lý Fshare request với email đã chọn - AUTOMATIC DOWNLOAD
   const handleFshareRequest = async (email) => {
     if (!email || email.trim() === '') {
       toast.error('Vui lòng nhập email nhận file!');
@@ -113,63 +113,136 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
         throw new Error('Không thể lưu yêu cầu: ' + saveResult.error);
       }
 
-      const loadingToast = toast.loading('Đang gửi yêu cầu tải xuống Fshare...');
+      const loadingToast = toast.loading('Đang tải xuống từ Fshare và upload lên Google Drive...');
 
-      // Cập nhật request với trạng thái pending để admin xử lý
-      const updateData = {
-        status: 'pending',
+      // Cập nhật request với trạng thái processing
+      await requestService.updateRequest(saveResult.id, {
+        status: 'processing',
         platform: 'Fshare',
-        note: 'Yêu cầu tải xuống từ Fshare - Cần admin xử lý thủ công',
-        userGmail: currentUser.email, // Email người gửi
+        note: 'Đang tự động tải xuống từ Fshare và upload lên Google Drive',
+        userGmail: currentUser.email,
         userDisplayName: userName || currentUser.displayName || currentUser.email.split('@')[0],
-        recipientEmail: email, // Email nhận file (user nhập)
-        isManualProcessing: true,
-        drivePermissions: {
-          email: email, // Email nhận file
-          role: 'reader'
-        }
-      };
+        recipientEmail: email,
+        isManualProcessing: false
+      });
 
-      console.log('🔍 DEBUG - Update data:', updateData);
-      await requestService.updateRequest(saveResult.id, updateData);
+      // Gọi API automatic download với targetEmail
+      const response = await axios.post('/api/download', {
+        url,
+        requestId: saveResult.id,
+        userID: currentUser.uid,
+        targetEmail: email, // Email nhận file
+        password: '', // Có thể thêm password input sau
+        platform: 'Fshare'
+      });
 
       toast.dismiss(loadingToast);
-      toast.success(
-        <div className="text-sm">
-          <div className="font-medium mb-1">✅ Yêu cầu đã được gửi thành công!</div>
-          <div className="text-xs text-gray-600">
-            📧 Admin sẽ xử lý và upload file lên Google Drive<br/>
-            🔔 Bạn sẽ nhận được thông báo khi file sẵn sàng<br/>
-            📁 File sẽ được chia sẻ trực tiếp với email: <strong>{email}</strong>
-          </div>
-        </div>,
-        { duration: 8000 }
-      );
 
-      // Hiển thị thông tin yêu cầu
-      setMediaData({
-        title: 'Yêu cầu tải xuống Fshare đã được gửi',
-        source: 'Fshare',
-        type: 'Request',
-        requestId: saveResult.id,
-        status: 'pending',
-        message: 'Yêu cầu của bạn đã được gửi đến quản trị viên. Chúng tôi sẽ tải file từ Fshare và upload lên Google Drive để bạn có thể tải xuống với tốc độ cao.',
-        originalUrl: url,
-        recipientEmail: email,
-        instructions: [
-          '📝 Admin sẽ nhận được thông báo về yêu cầu của bạn',
-          '📥 Admin sẽ tải file từ Fshare bằng tài khoản VIP',
-          '☁️ File sẽ được upload lên Google Drive',
-          `🔗 File sẽ được chia sẻ với email: ${email}`,
-          '⏱️ Thời gian xử lý: 5-30 phút tùy kích thước file'
-        ]
-      });
+      if (response.data.isAutomatic && response.data.uploadedToDrive) {
+        // Automatic download thành công
+        await requestService.updateRequest(saveResult.id, {
+          status: 'completed',
+          completedAt: new Date(),
+          driveLink: response.data.downloadUrl,
+          fileSize: response.data.fileSize,
+          actualQuality: 'Original'
+        });
+
+        toast.success(
+          <div className="text-sm">
+            <div className="font-medium mb-1">✅ File đã được tải xuống và upload thành công!</div>
+            <div className="text-xs text-gray-600">
+              📁 File: <strong>{response.data.title}</strong><br/>
+              ☁️ Đã upload lên Google Drive<br/>
+              📧 Đã chia sẻ với email: <strong>{email}</strong><br/>
+              📬 Email thông báo đã được gửi
+            </div>
+          </div>,
+          { duration: 10000 }
+        );
+
+        // Hiển thị thông tin file đã hoàn thành
+        setMediaData({
+          title: response.data.title,
+          source: 'Fshare',
+          type: response.data.type,
+          requestId: saveResult.id,
+          status: 'completed',
+          downloadUrl: response.data.downloadUrl,
+          driveLink: response.data.downloadUrl,
+          fileSize: response.data.fileSize,
+          originalUrl: url,
+          recipientEmail: email,
+          isAutomatic: true,
+          uploadedToDrive: true,
+          instructions: [
+            '✅ File đã được tải xuống từ Fshare thành công',
+            '☁️ File đã được upload lên Google Drive',
+            `📧 File đã được chia sẻ với email: ${email}`,
+            '📬 Kiểm tra email để nhận thông báo',
+            '🔗 Click vào link Google Drive để truy cập file'
+          ]
+        });
+      } else if (response.data.isManualProcessing) {
+        // Fallback to manual processing
+        await requestService.updateRequest(saveResult.id, {
+          status: 'pending',
+          note: 'Automatic download failed, fallback to manual processing',
+          isManualProcessing: true
+        });
+
+        toast.warning(
+          <div className="text-sm">
+            <div className="font-medium mb-1">⚠️ Chuyển sang xử lý thủ công</div>
+            <div className="text-xs text-gray-600">
+              🔄 Automatic download không thành công<br/>
+              📧 Admin sẽ xử lý thủ công<br/>
+              ⏱️ Thời gian xử lý: 5-30 phút
+            </div>
+          </div>,
+          { duration: 8000 }
+        );
+
+        setMediaData({
+          title: 'Yêu cầu tải xuống Fshare (Xử lý thủ công)',
+          source: 'Fshare',
+          type: 'Request',
+          requestId: saveResult.id,
+          status: 'pending',
+          message: 'Automatic download không thành công. Admin sẽ xử lý thủ công.',
+          originalUrl: url,
+          recipientEmail: email,
+          isManualProcessing: true,
+          instructions: response.data.instructions || [
+            '📝 Admin sẽ nhận được thông báo về yêu cầu của bạn',
+            '📥 Admin sẽ tải file từ Fshare bằng tài khoản VIP',
+            '☁️ File sẽ được upload lên Google Drive',
+            `🔗 File sẽ được chia sẻ với email: ${email}`,
+            '⏱️ Thời gian xử lý: 5-30 phút tùy kích thước file'
+          ]
+        });
+      } else {
+        throw new Error('Unexpected response format');
+      }
+
+      // Tăng số lần download của user
+      await userService.incrementUserDownloads(currentUser.uid);
 
       setUrl('');
       setRecipientEmail('');
     } catch (error) {
       console.error('Error submitting Fshare request:', error);
-      toast.error('Có lỗi xảy ra khi gửi yêu cầu: ' + error.message);
+
+      // Cập nhật request với trạng thái failed
+      if (saveResult?.id) {
+        await requestService.updateRequest(saveResult.id, {
+          status: 'failed',
+          error: error.message,
+          failedAt: new Date()
+        });
+      }
+
+      toast.error('Có lỗi xảy ra khi tải xuống: ' + (error.response?.data?.message || error.message));
     } finally {
       setIsSubmitting(false);
       setLoading(false);

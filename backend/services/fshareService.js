@@ -373,24 +373,158 @@ class FshareService {
         throw new Error('Failed to get download link');
       }
 
+      // Actually download the file to temp directory
+      const path = require('path');
+      const fs = require('fs');
+      const axios = require('axios');
+      const { v4: uuidv4 } = require('uuid');
+
+      const tempDir = path.join(__dirname, '..', 'temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      // Generate unique filename
+      const fileExtension = path.extname(fileInfo.name) || '.bin';
+      const uniqueFilename = `${uuidv4()}${fileExtension}`;
+      const tempFilePath = path.join(tempDir, uniqueFilename);
+
+      console.log('📥 Downloading file from Fshare to:', tempFilePath);
+
+      // Download file from Fshare
+      const response = await axios({
+        method: 'GET',
+        url: downloadInfo.downloadUrl,
+        responseType: 'stream',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://www.fshare.vn/'
+        },
+        timeout: 300000 // 5 minutes timeout for large files
+      });
+
+      const writer = fs.createWriteStream(tempFilePath);
+      response.data.pipe(writer);
+
+      await new Promise((resolve, reject) => {
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+      });
+
+      console.log('✅ File downloaded successfully to temp directory');
+
       // Update quota
       this.updateQuotaUsage(fileInfo.size);
 
-      return {
-        success: true,
-        title: fileInfo.name,
-        filename: fileInfo.name,
-        downloadUrl: downloadInfo.downloadUrl,
-        fileSize: fileInfo.size,
-        source: 'Fshare',
-        type: this.getFileType(fileInfo.name),
-        targetEmail: targetEmail,
-        instructions: targetEmail ?
-          `File sẽ được upload lên Google Drive và chia sẻ với email: ${targetEmail}` :
-          'File sẽ được tải xuống trực tiếp',
-        originalUrl: fshareUrl,
-        platform: 'fshare'
-      };
+      // If targetEmail provided, upload to Google Drive
+      if (targetEmail) {
+        console.log('📤 Uploading to Google Drive for:', targetEmail);
+
+        const googleDriveService = require('./googleDriveService');
+
+        if (googleDriveService.isInitialized()) {
+          try {
+            // Create user folder
+            const userFolderResult = await googleDriveService.createUserFolder(targetEmail, 'Fshare User');
+
+            if (userFolderResult.success) {
+              // Upload file to Google Drive
+              const uploadResult = await googleDriveService.uploadFile(
+                tempFilePath,
+                fileInfo.name,
+                this.getMimeType(fileInfo.name),
+                {
+                  userEmail: targetEmail,
+                  userName: 'Fshare User',
+                  folderId: userFolderResult.folderId
+                }
+              );
+
+              // Delete temp file after upload
+              try {
+                fs.unlinkSync(tempFilePath);
+                console.log('🗑️ Temp file deleted after upload');
+              } catch (deleteError) {
+                console.log('⚠️ Failed to delete temp file:', deleteError.message);
+              }
+
+              if (uploadResult.success) {
+                console.log('✅ File uploaded to Google Drive successfully');
+
+                // Send email notification
+                const emailService = require('./emailService');
+                try {
+                  await emailService.sendDownloadNotification(
+                    targetEmail,
+                    'Fshare User',
+                    fileInfo.name,
+                    uploadResult.webViewLink,
+                    'Fshare'
+                  );
+                  console.log('📧 Email notification sent');
+                } catch (emailError) {
+                  console.log('⚠️ Email notification failed:', emailError.message);
+                }
+
+                return {
+                  success: true,
+                  title: fileInfo.name,
+                  filename: fileInfo.name,
+                  downloadUrl: uploadResult.webViewLink,
+                  fileSize: fileInfo.size,
+                  source: 'Fshare',
+                  type: this.getFileType(fileInfo.name),
+                  targetEmail: targetEmail,
+                  instructions: `File đã được tải xuống từ Fshare và upload lên Google Drive. Link đã được chia sẻ với email: ${targetEmail}`,
+                  originalUrl: fshareUrl,
+                  platform: 'fshare',
+                  driveLink: uploadResult.webViewLink,
+                  isAutomatic: true,
+                  uploadedToDrive: true
+                };
+              } else {
+                throw new Error('Failed to upload to Google Drive: ' + uploadResult.error);
+              }
+            } else {
+              throw new Error('Failed to create user folder: ' + userFolderResult.error);
+            }
+          } catch (driveError) {
+            console.error('❌ Google Drive upload failed:', driveError.message);
+            // Delete temp file on error
+            try {
+              fs.unlinkSync(tempFilePath);
+            } catch (deleteError) {
+              console.log('Failed to delete temp file on error:', deleteError.message);
+            }
+            throw new Error(`Google Drive upload failed: ${driveError.message}`);
+          }
+        } else {
+          // Delete temp file if Drive not available
+          try {
+            fs.unlinkSync(tempFilePath);
+          } catch (deleteError) {
+            console.log('Failed to delete temp file:', deleteError.message);
+          }
+          throw new Error('Google Drive service not initialized');
+        }
+      } else {
+        // Return local download link
+        return {
+          success: true,
+          title: fileInfo.name,
+          filename: fileInfo.name,
+          downloadUrl: `/temp/${uniqueFilename}?filename=${encodeURIComponent(fileInfo.name)}`,
+          fileSize: fileInfo.size,
+          source: 'Fshare',
+          type: this.getFileType(fileInfo.name),
+          targetEmail: targetEmail,
+          instructions: 'File đã được tải xuống từ Fshare và sẵn sàng để tải về',
+          originalUrl: fshareUrl,
+          platform: 'fshare',
+          isAutomatic: true,
+          localPath: tempFilePath
+        };
+      }
     } catch (error) {
       console.error('❌ Fshare download error:', error.message);
       throw new Error(`Fshare download failed: ${error.message}`);
@@ -416,6 +550,63 @@ class FshareService {
     if (archiveExts.includes(ext)) return 'Archive';
 
     return 'File';
+  }
+
+  /**
+   * Get MIME type based on file extension
+   */
+  getMimeType(filename) {
+    const ext = filename.toLowerCase().split('.').pop();
+
+    const mimeTypes = {
+      // Video
+      'mp4': 'video/mp4',
+      'avi': 'video/x-msvideo',
+      'mkv': 'video/x-matroska',
+      'mov': 'video/quicktime',
+      'wmv': 'video/x-ms-wmv',
+      'flv': 'video/x-flv',
+      'webm': 'video/webm',
+      'm4v': 'video/x-m4v',
+
+      // Audio
+      'mp3': 'audio/mpeg',
+      'wav': 'audio/wav',
+      'flac': 'audio/flac',
+      'aac': 'audio/aac',
+      'm4a': 'audio/mp4',
+      'ogg': 'audio/ogg',
+      'wma': 'audio/x-ms-wma',
+
+      // Images
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'bmp': 'image/bmp',
+      'webp': 'image/webp',
+      'svg': 'image/svg+xml',
+
+      // Documents
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'ppt': 'application/vnd.ms-powerpoint',
+      'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'txt': 'text/plain',
+
+      // Archives
+      'zip': 'application/zip',
+      'rar': 'application/x-rar-compressed',
+      '7z': 'application/x-7z-compressed',
+      'tar': 'application/x-tar',
+      'gz': 'application/gzip',
+      'bz2': 'application/x-bzip2'
+    };
+
+    return mimeTypes[ext] || 'application/octet-stream';
   }
 
   /**
