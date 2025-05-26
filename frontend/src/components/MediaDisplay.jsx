@@ -215,12 +215,19 @@ const MediaDisplay = ({ mediaData, loading, error }) => {
                 📋 Quy trình xử lý:
               </h4>
               <ul className="space-y-2">
-                {displayData.instructions.map((instruction, index) => (
-                  <li key={index} className="text-sm text-blue-700 dark:text-blue-400 flex items-start">
-                    <span className="mr-2 mt-0.5 text-blue-500">•</span>
-                    {instruction}
-                  </li>
-                ))}
+                {Array.isArray(displayData.instructions) ?
+                  displayData.instructions.map((instruction, index) => (
+                    <li key={index} className="text-sm text-blue-700 dark:text-blue-400 flex items-start">
+                      <span className="mr-2 mt-0.5 text-blue-500">•</span>
+                      {instruction}
+                    </li>
+                  )) : (
+                    <li className="text-sm text-blue-700 dark:text-blue-400 flex items-start">
+                      <span className="mr-2 mt-0.5 text-blue-500">•</span>
+                      {displayData.instructions}
+                    </li>
+                  )
+                }
               </ul>
             </div>
           )}
@@ -345,19 +352,25 @@ const MediaDisplay = ({ mediaData, loading, error }) => {
         {displayData.type === 'Instructions' && displayData.instructions && (
           <div className="p-6 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 rounded-lg">
             <div className="space-y-2">
-              {displayData.instructions.map((instruction, index) => (
-                <p key={index} className={`${
-                  instruction === '' ? 'h-2' :
-                  instruction.startsWith('📸') ? 'text-lg font-bold text-yellow-800 dark:text-yellow-200' :
-                  instruction.startsWith('🔒') || instruction.startsWith('⚠️') ? 'text-red-700 dark:text-red-300 font-medium' :
-                  instruction.startsWith('💡') || instruction.startsWith('✅') ? 'text-green-700 dark:text-green-300 font-medium' :
-                  instruction.startsWith('🌐') ? 'text-blue-700 dark:text-blue-300 font-mono text-sm break-all' :
-                  instruction.match(/^\d️⃣/) ? 'text-gray-800 dark:text-gray-200 ml-4' :
-                  'text-gray-700 dark:text-gray-300'
-                }`}>
-                  {instruction}
-                </p>
-              ))}
+              {Array.isArray(displayData.instructions) ?
+                displayData.instructions.map((instruction, index) => (
+                  <p key={index} className={`${
+                    instruction === '' ? 'h-2' :
+                    instruction.startsWith('📸') ? 'text-lg font-bold text-yellow-800 dark:text-yellow-200' :
+                    instruction.startsWith('🔒') || instruction.startsWith('⚠️') ? 'text-red-700 dark:text-red-300 font-medium' :
+                    instruction.startsWith('💡') || instruction.startsWith('✅') ? 'text-green-700 dark:text-green-300 font-medium' :
+                    instruction.startsWith('🌐') ? 'text-blue-700 dark:text-blue-300 font-mono text-sm break-all' :
+                    instruction.match(/^\d️⃣/) ? 'text-gray-800 dark:text-gray-200 ml-4' :
+                    'text-gray-700 dark:text-gray-300'
+                  }`}>
+                    {instruction}
+                  </p>
+                )) : (
+                  <p className="text-gray-700 dark:text-gray-300">
+                    {displayData.instructions}
+                  </p>
+                )
+              }
             </div>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3">

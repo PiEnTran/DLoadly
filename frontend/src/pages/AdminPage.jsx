@@ -1321,7 +1321,7 @@ const AdminPage = () => {
                           {getStatusBadge(request.status)}
                         </td>
                         <td className="hidden lg:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
-                      {request.platform === 'Fshare' && request.status !== 'completed' && (
+                      {request.platform === 'Fshare' && request.status !== 'completed' && request.isManualProcessing && (
                         <div className="space-y-2">
                           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-2">
                             <p className="text-xs text-blue-800 dark:text-blue-300 mb-2">
@@ -1417,6 +1417,21 @@ const AdminPage = () => {
                               ></div>
                             </div>
                           )}
+                        </div>
+                      )}
+                      {request.platform === 'Fshare' && request.status !== 'completed' && !request.isManualProcessing && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                            <p className="text-sm text-blue-800 dark:text-blue-300">
+                              🤖 <strong>Automatic Download đang xử lý...</strong>
+                            </p>
+                          </div>
+                          <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
+                            ✅ Hệ thống đang tự động tải xuống từ Fshare và upload lên Google Drive<br/>
+                            📧 User sẽ nhận email thông báo khi hoàn thành<br/>
+                            ⏱️ Không cần xử lý thủ công
+                          </p>
                         </div>
                       )}
                       {request.platform !== 'Fshare' && request.status !== 'completed' && (
