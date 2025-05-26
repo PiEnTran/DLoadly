@@ -130,7 +130,7 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
       });
 
       // Gọi API automatic download với targetEmail
-      const response = await api.post('/download', {
+      const response = await api.post('/api/download', {
         url,
         requestId: saveResult.id,
         userID: currentUser.uid,
@@ -465,7 +465,7 @@ const UrlForm = ({ url, setUrl, setMediaData, setLoading, setError }) => {
         status: 'processing'
       });
 
-      const response = await api.post('/download', {
+      const response = await api.post('/api/download', {
         url,
         requestId: saveResult.id,
         userID: currentUser.uid // Pass Firebase userID for storage management
