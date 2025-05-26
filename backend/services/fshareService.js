@@ -3,7 +3,13 @@ const environment = require('../config/environment');
 
 class FshareService {
   constructor() {
-    this.baseURL = process.env.FSHARE_API_URL || 'https://api2.fshare.vn';
+    // Try multiple API endpoints
+    this.apiEndpoints = [
+      process.env.FSHARE_API_URL || 'https://api.fshare.vn',
+      'https://api2.fshare.vn',
+      'https://www.fshare.vn/api'
+    ];
+    this.baseURL = this.apiEndpoints[0];
     this.sessionToken = null;
     this.sessionId = null;
     this.tokenExpiry = null;
@@ -39,57 +45,83 @@ class FshareService {
    * Login to Fshare and get session token
    */
   async login() {
-    try {
-      if (!this.isConfigured()) {
-        throw new Error('Fshare service is not configured or disabled');
-      }
+    if (!this.isConfigured()) {
+      throw new Error('Fshare service is not configured or disabled');
+    }
 
-      console.log('🔐 Logging into Fshare...');
-      console.log('🔐 Using credentials:', {
-        email: this.credentials.user_email,
-        hasPassword: !!this.credentials.password,
-        appKey: this.credentials.app_key
-      });
+    console.log('🔐 Logging into Fshare...');
+    console.log('🔐 Using credentials:', {
+      email: this.credentials.user_email,
+      hasPassword: !!this.credentials.password,
+      appKey: this.credentials.app_key
+    });
 
-      const response = await axios.post(`${this.baseURL}/api/user/login`, {
-        user_email: this.credentials.user_email,
-        password: this.credentials.password,
-        app_key: this.credentials.app_key
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
-        timeout: 30000
-      });
+    // Try multiple API endpoints
+    for (let i = 0; i < this.apiEndpoints.length; i++) {
+      const endpoint = this.apiEndpoints[i];
 
-      if (response.data && response.data.code === 200) {
-        this.sessionToken = response.data.token;
-        this.userInfo = response.data;
-        this.tokenExpiry = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+      try {
+        console.log(`🔍 Trying endpoint ${i + 1}/${this.apiEndpoints.length}: ${endpoint}/api/user/login`);
 
-        console.log('✅ Fshare login successful:', {
-          token: this.sessionToken ? 'Present' : 'Missing',
-          expiry: new Date(this.tokenExpiry).toISOString()
+        const response = await axios.post(`${endpoint}/api/user/login`, {
+          user_email: this.credentials.user_email,
+          password: this.credentials.password,
+          app_key: this.credentials.app_key
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
+            'Accept': 'application/json',
+            'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8'
+          },
+          timeout: 30000,
+          validateStatus: function (status) {
+            return status < 500; // Don't throw for 4xx errors
+          }
         });
 
-        return {
-          success: true,
-          token: this.sessionToken,
-          userInfo: this.userInfo
-        };
-      } else {
-        console.error('❌ Fshare login response:', response.data);
-        throw new Error(`Login failed: ${response.data?.msg || 'Unknown error'}`);
+        console.log(`🔍 Response from ${endpoint}:`, {
+          status: response.status,
+          contentType: response.headers['content-type'],
+          dataType: typeof response.data,
+          hasCode: response.data?.code !== undefined
+        });
+
+        if (response.data && response.data.code === 200 && response.data.token) {
+          this.baseURL = endpoint; // Use working endpoint
+          this.sessionToken = response.data.token;
+          this.sessionId = response.data.session_id;
+          this.userInfo = response.data;
+          this.tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
+
+          console.log(`✅ Fshare login successful with endpoint: ${endpoint}`);
+          return {
+            success: true,
+            token: this.sessionToken,
+            userInfo: this.userInfo
+          };
+        } else if (response.status === 200 && typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
+          console.log(`❌ Endpoint ${endpoint} returned HTML error page`);
+          continue; // Try next endpoint
+        } else {
+          console.log(`❌ Endpoint ${endpoint} failed:`, {
+            status: response.status,
+            code: response.data?.code,
+            message: response.data?.msg
+          });
+          continue; // Try next endpoint
+        }
+      } catch (error) {
+        console.log(`❌ Endpoint ${endpoint} error:`, error.message);
+        if (i === this.apiEndpoints.length - 1) {
+          // Last endpoint failed
+          throw new Error(`All Fshare API endpoints failed. Last error: ${error.message}`);
+        }
+        continue; // Try next endpoint
       }
-    } catch (error) {
-      console.error('❌ Fshare login error:', error.message);
-      if (error.response) {
-        console.error('❌ Response status:', error.response.status);
-        console.error('❌ Response data:', error.response.data);
-      }
-      throw new Error(`Fshare login failed: ${error.message}`);
     }
+
+    throw new Error('All Fshare API endpoints returned invalid responses');
   }
 
   /**
