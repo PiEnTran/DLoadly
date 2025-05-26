@@ -12,7 +12,7 @@ const PORT = config.port;
 // Environment check
 const isProduction = config.isProduction;
 
-console.log('🚀 Starting DLoadly Production Server...');
+console.log('🚀 Starting DLoadly Production Server v2.0...');
 
 // Security middleware
 app.use((req, res, next) => {
