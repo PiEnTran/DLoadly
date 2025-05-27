@@ -70,7 +70,7 @@ class FshareService {
         }, {
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
+            'User-Agent': 'tungdlsl88_gmail_com',
             'Accept': 'application/json',
             'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8'
           },
@@ -176,7 +176,7 @@ class FshareService {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.sessionToken}`,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          'User-Agent': 'tungdlsl88_gmail_com'
         },
         timeout: 30000
       });
@@ -205,7 +205,7 @@ class FshareService {
    */
   async getDownloadToken(fileCode, password = '') {
     try {
-      const response = await axios.post(`${this.baseURL}/session/download`, {
+      const response = await axios.post(`${this.baseURL}/api/session/download`, {
         url: `https://www.fshare.vn/file/${fileCode}`,
         password: password,
         zipflag: 0
@@ -213,7 +213,7 @@ class FshareService {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.sessionToken}`,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          'User-Agent': 'tungdlsl88_gmail_com'
         },
         timeout: 30000
       });
