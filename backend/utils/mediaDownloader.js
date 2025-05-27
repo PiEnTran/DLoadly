@@ -1970,25 +1970,29 @@ const downloadFshare = async (url, password = '', targetEmail = '') => {
       return createFshareManualInstructions(url, password, targetEmail, displayTitle, 'SERVICE_NOT_CONFIGURED');
     }
 
-    // Try automatic download first
+    // Try to get direct download link first
     try {
-      const result = await fshareService.downloadFile(url, password, targetEmail);
+      const result = await fshareService.getDownloadLink(url, password);
 
-      if (result.success) {
-        console.log('✅ Fshare automatic download successful:', result.title);
+      if (result.success && result.downloadUrl) {
+        console.log('✅ Fshare direct link obtained successfully:', result.filename);
+
+        // Return direct download link (no server download)
         return {
-          title: result.title,
+          title: result.filename || displayTitle,
           source: 'Fshare',
-          type: result.type,
-          downloadUrl: result.downloadUrl,
+          type: 'File', // Generic file type
+          downloadUrl: result.downloadUrl, // Direct Fshare download URL
           filename: result.filename,
           fileSize: result.fileSize,
-          instructions: result.instructions,
+          instructions: `File Fshare sẵn sàng tải xuống trực tiếp.\n\nThông tin:\n- Tên file: ${result.filename}\n- Kích thước: ${result.fileSize ? (result.fileSize / (1024*1024)).toFixed(2) + ' MB' : 'Không xác định'}\n- Link tải: Có hiệu lực trong thời gian giới hạn\n\nClick "Tải xuống" để tải file trực tiếp từ Fshare.`,
           originalUrl: url,
           platform: 'fshare',
           targetEmail: targetEmail,
           watermarkFree: true,
-          isAutomatic: true
+          isAutomatic: true,
+          isDirect: true, // Flag to indicate this is direct download
+          expiresIn: '1 hour' // Fshare links usually expire
         };
       }
     } catch (apiError) {
