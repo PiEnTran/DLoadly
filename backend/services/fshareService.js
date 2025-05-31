@@ -205,27 +205,62 @@ class FshareService {
    */
   async getDownloadToken(fileCode, password = '') {
     try {
-      const response = await axios.post(`${this.baseURL}/api/session/download`, {
+      console.log('🔗 Getting Fshare download token for:', fileCode);
+      console.log('🔑 Token:', this.sessionToken);
+      console.log('🆔 Session ID:', this.sessionId);
+
+      const requestData = {
         url: `https://www.fshare.vn/file/${fileCode}`,
         password: password,
-        zipflag: 0
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.sessionToken}`,
-          'User-Agent': 'tungdlsl88_gmail_com'
-        },
+        zipflag: 0,
+        token: this.sessionToken
+      };
+
+      const requestHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.sessionToken}`,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
+        'Accept-Language': 'vi-VN,vi',
+        'Cookie': `session_id=${this.sessionId}`
+      };
+
+      console.log('📤 Request data:', requestData);
+      console.log('📤 Request headers:', requestHeaders);
+
+      const response = await axios.post(`${this.baseURL}/api/session/download`, requestData, {
+        headers: requestHeaders,
         timeout: 30000
       });
 
-      if (response.data && response.data.token) {
+      console.log('📋 Download response status:', response.status);
+      console.log('📋 Download response headers:', response.headers);
+      console.log('📋 Download response data:', JSON.stringify(response.data, null, 2));
+
+      if (response.data && response.data.location) {
+        // API trả về location thay vì token
+        return response.data.location;
+      } else if (response.data && response.data.token) {
         return response.data.token;
       } else {
-        throw new Error('Failed to get download token');
+        console.error('❌ No download token/location in response. Full response:', JSON.stringify(response.data, null, 2));
+
+        // Check for different response formats
+        if (response.data && response.data.code) {
+          throw new Error(`Fshare API Error: ${response.data.msg || 'Unknown error'} (Code: ${response.data.code})`);
+        } else if (response.data && response.data.error) {
+          throw new Error(`Fshare API Error: ${response.data.error}`);
+        } else {
+          throw new Error(`API Error: No download token found in response. Response: ${JSON.stringify(response.data)}`);
+        }
       }
     } catch (error) {
       console.error('❌ Fshare download token error:', error.message);
-      throw error;
+      if (error.response) {
+        console.error('📋 Error response status:', error.response.status);
+        console.error('📋 Error response headers:', error.response.headers);
+        console.error('📋 Error response data:', JSON.stringify(error.response.data, null, 2));
+      }
+      throw new Error(`Failed to get download token`);
     }
   }
 
