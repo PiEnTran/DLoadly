@@ -7,8 +7,33 @@ const { v4: uuidv4 } = require('uuid');
 const cheerio = require('cheerio');
 const FormData = require('form-data');
 
-// Promisify exec
-const execAsync = promisify(exec);
+// Promisify exec with timeout
+const execAsync = (command, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const timeout = options.timeout || 180000; // 3 minutes default timeout
+    const child = exec(command, {
+      maxBuffer: 1024 * 1024 * 10, // 10MB buffer
+      ...options
+    }, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve({ stdout, stderr });
+      }
+    });
+
+    // Set timeout
+    const timeoutId = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error(`Command timeout after ${timeout}ms: ${command}`));
+    }, timeout);
+
+    // Clear timeout when process completes
+    child.on('exit', () => {
+      clearTimeout(timeoutId);
+    });
+  });
+};
 
 // SnapTik GitHub API Client (reverse-engineered)
 class SnapTikClient {

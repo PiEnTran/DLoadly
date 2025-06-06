@@ -4,7 +4,7 @@ import environment from '../config/environment.js';
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: environment.API_BASE_URL,
-  timeout: 30000,
+  timeout: 120000, // Increased to 2 minutes for video downloads
   headers: {
     'Content-Type': 'application/json',
   },
