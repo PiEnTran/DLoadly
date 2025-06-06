@@ -248,8 +248,15 @@ try {
     const downloadRoutes = require('./routes/download');
     app.use('/api', downloadRoutes);
     console.log('✅ Download routes loaded');
+    console.log('📋 Available download routes:');
+    downloadRoutes.stack.forEach(layer => {
+      if (layer.route) {
+        console.log(`   ${Object.keys(layer.route.methods).join(',').toUpperCase()} /api${layer.route.path}`);
+      }
+    });
   } catch (err) {
     console.log('⚠️ Download routes failed:', err.message);
+    console.error('Download routes error stack:', err.stack);
   }
 
   try {
@@ -295,6 +302,30 @@ try {
 } catch (error) {
   console.error('Error loading routes:', error.message);
 }
+
+// Debug: List all registered routes
+console.log('\n📋 All registered routes:');
+app._router.stack.forEach((middleware, index) => {
+  if (middleware.route) {
+    // Direct route
+    console.log(`${index}: ${Object.keys(middleware.route.methods).join(',').toUpperCase()} ${middleware.route.path}`);
+  } else if (middleware.name === 'router') {
+    // Router middleware
+    console.log(`${index}: Router middleware`);
+    if (middleware.regexp && middleware.regexp.source) {
+      console.log(`   Pattern: ${middleware.regexp.source}`);
+    }
+    if (middleware.handle && middleware.handle.stack) {
+      middleware.handle.stack.forEach((layer, layerIndex) => {
+        if (layer.route) {
+          const basePath = middleware.regexp.source.replace(/\\\//g, '/').replace(/\$.*/, '').replace(/\^/, '');
+          console.log(`   ${layerIndex}: ${Object.keys(layer.route.methods).join(',').toUpperCase()} ${basePath}${layer.route.path}`);
+        }
+      });
+    }
+  }
+});
+console.log('');
 
 // Auto cleanup
 const cleanupInterval = 6 * 60 * 60 * 1000; // 6 hours
