@@ -163,9 +163,9 @@ app.get('/api/health', (req, res) => {
   }
 });
 
-// Emergency download endpoint (direct in server.js)
+// Real download endpoint with actual file downloads
 app.post('/api/download', async (req, res) => {
-  console.log('🚨 Emergency download endpoint called');
+  console.log('🎯 Real download endpoint called');
   console.log('Request body:', req.body);
 
   try {
@@ -175,8 +175,34 @@ app.post('/api/download', async (req, res) => {
       return res.status(400).json({ message: 'URL is required' });
     }
 
-    // Detect platform
-    const detectPlatform = (url) => {
+    // Import download functions
+    let downloadResult;
+    try {
+      const { downloadFromPlatform } = require('./utils/realDownloader');
+      downloadResult = await downloadFromPlatform(url, quality);
+
+      console.log('✅ Download successful:', downloadResult.title);
+      return res.status(200).json(downloadResult);
+
+    } catch (downloadError) {
+      console.error('Download failed:', downloadError.message);
+      // Fallback to instructions if download fails
+      return handleInstructionsFallback(url, quality, res);
+    }
+  } catch (error) {
+    console.error('Emergency download error:', error);
+    return res.status(500).json({
+      message: error.message || 'An error occurred while processing your request'
+    });
+  }
+});
+
+// Instructions fallback function
+const handleInstructionsFallback = (url, quality, res) => {
+  console.log('🔄 Falling back to instructions mode');
+
+  const detectPlatform = (url) => {
+    try {
       const urlObj = new URL(url);
       const hostname = urlObj.hostname.toLowerCase();
 
@@ -195,19 +221,20 @@ app.post('/api/download', async (req, res) => {
       } else {
         return 'unknown';
       }
-    };
-
-    const platform = detectPlatform(url);
-    console.log('Detected platform:', platform);
-
-    if (platform === 'unknown') {
-      return res.status(400).json({
-        message: 'Nền tảng không được hỗ trợ. Hiện tại chúng tôi hỗ trợ YouTube, TikTok, Instagram, Facebook, Twitter, và Fshare.'
-      });
+    } catch (error) {
+      return 'unknown';
     }
+  };
 
-    // For now, return instructions for manual download
-    const instructions = `
+  const platform = detectPlatform(url);
+
+  if (platform === 'unknown') {
+    return res.status(400).json({
+      message: 'Nền tảng không được hỗ trợ. Hiện tại chúng tôi hỗ trợ YouTube, TikTok, Instagram, Facebook, Twitter, và Fshare.'
+    });
+  }
+
+  const instructions = `
 🎥 ${platform.toUpperCase()} VIDEO DOWNLOAD
 
 📋 HƯỚNG DẪN TẢI XUỐNG:
@@ -226,30 +253,24 @@ app.post('/api/download', async (req, res) => {
 📞 HỖ TRỢ: Liên hệ quản trị viên nếu cần
 `;
 
-    const result = {
-      title: `${platform} Video Download`,
-      source: platform,
-      type: 'Instructions',
-      downloadUrl: null,
-      filename: `${platform}_download_instructions.txt`,
-      instructions: instructions,
-      originalUrl: url,
-      platform: platform,
-      requiresManualDownload: true,
-      isManualProcessing: true,
-      watermarkFree: true,
-      availableQualities: ['1080p', '720p', '480p', '360p', '240p'],
-      alternativeDownloads: []
-    };
+  const result = {
+    title: `${platform} Video Download`,
+    source: platform,
+    type: 'Instructions',
+    downloadUrl: null,
+    filename: `${platform}_download_instructions.txt`,
+    instructions: instructions,
+    originalUrl: url,
+    platform: platform,
+    requiresManualDownload: true,
+    isManualProcessing: true,
+    watermarkFree: true,
+    availableQualities: ['1080p', '720p', '480p', '360p', '240p'],
+    alternativeDownloads: []
+  };
 
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error('Emergency download error:', error);
-    return res.status(500).json({
-      message: error.message || 'An error occurred while processing your request'
-    });
-  }
-});
+  return res.status(200).json(result);
+};
 
 // Emergency test endpoint
 app.get('/api/test', (req, res) => {
