@@ -231,8 +231,43 @@ class SnapTikClient {
   }
 }
 
-// Path to yt-dlp binary
-const ytDlpPath = path.join(__dirname, '..', 'bin', 'yt-dlp');
+// Auto-detect yt-dlp path with fallbacks
+const findYtDlpPath = () => {
+  const possiblePaths = [
+    // Local development paths
+    path.join(__dirname, '..', 'bin', 'yt-dlp'),
+    '/Users/pien/Library/Python/3.9/bin/yt-dlp',
+
+    // Production/Railway paths
+    '/usr/local/bin/yt-dlp',
+    '/usr/bin/yt-dlp',
+    '/opt/homebrew/bin/yt-dlp',
+    '/opt/local/bin/yt-dlp',
+    'yt-dlp', // System PATH
+
+    // Alternative names
+    'youtube-dl',
+    '/usr/local/bin/youtube-dl',
+    '/usr/bin/youtube-dl'
+  ];
+
+  for (const ytdlpPath of possiblePaths) {
+    try {
+      if (fs.existsSync(ytdlpPath)) {
+        console.log(`✅ Found yt-dlp at: ${ytdlpPath}`);
+        return ytdlpPath;
+      }
+    } catch (error) {
+      // Continue to next path
+    }
+  }
+
+  // If no local binary found, try system PATH
+  console.log('⚠️ No local yt-dlp found, using system PATH');
+  return 'yt-dlp';
+};
+
+const ytDlpPath = findYtDlpPath();
 
 // Temp directory for downloads
 const tempDir = path.join(__dirname, '..', 'temp');
@@ -242,10 +277,28 @@ const generateUniqueFilename = (extension) => {
   return `${uuidv4()}.${extension}`;
 };
 
+// Test if yt-dlp is available
+const testYtDlp = async () => {
+  try {
+    await execAsync(`${ytDlpPath} --version`, { timeout: 10000 });
+    return true;
+  } catch (error) {
+    console.log('⚠️ yt-dlp not available:', error.message);
+    return false;
+  }
+};
+
 // YouTube downloader
 const downloadYouTube = async (url, quality = 'highest') => {
   try {
     console.log(`Downloading from YouTube: ${url} with quality: ${quality}`);
+
+    // Test if yt-dlp is available
+    const ytDlpAvailable = await testYtDlp();
+    if (!ytDlpAvailable) {
+      console.log('❌ yt-dlp not available, using API fallback');
+      return await downloadYouTubeAPI(url, quality);
+    }
 
     // Always download the file to ensure direct download
     const outputFilename = generateUniqueFilename('mp4');
@@ -500,16 +553,90 @@ const downloadYouTube = async (url, quality = 'highest') => {
   }
 };
 
+// YouTube API fallback when yt-dlp is not available
+const downloadYouTubeAPI = async (url, quality = 'highest') => {
+  try {
+    console.log('🔄 Using YouTube API fallback...');
+
+    // Extract video ID from URL
+    const videoId = extractYouTubeVideoId(url);
+    if (!videoId) {
+      throw new Error('Invalid YouTube URL');
+    }
+
+    // Use a simple approach - return instructions for manual download
+    const title = `YouTube Video ${videoId}`;
+    const instructions = `
+🎥 YOUTUBE VIDEO DOWNLOAD
+
+📋 HƯỚNG DẪN TẢI XUỐNG:
+1. Truy cập: https://www.y2mate.com/
+2. Dán link YouTube: ${url}
+3. Chọn chất lượng mong muốn
+4. Nhấn "Download" để tải về
+
+⚡ HOẶC SỬ DỤNG:
+- https://savefrom.net/
+- https://keepvid.com/
+- https://ytmp3.cc/
+
+🔗 Link gốc: ${url}
+
+⏱️ THỜI GIAN XỬ LÝ: Ngay lập tức
+📞 HỖ TRỢ: Liên hệ quản trị viên nếu cần
+`;
+
+    return {
+      title: title,
+      source: 'YouTube',
+      type: 'Instructions',
+      downloadUrl: null,
+      filename: 'youtube_download_instructions.txt',
+      instructions: instructions,
+      originalUrl: url,
+      platform: 'youtube',
+      requiresManualDownload: true,
+      isManualProcessing: true,
+      watermarkFree: true,
+      availableQualities: ['1080p', '720p', '480p', '360p', '240p'],
+      alternativeDownloads: []
+    };
+  } catch (error) {
+    console.error('YouTube API fallback error:', error);
+    throw new Error('Failed to process YouTube video');
+  }
+};
+
+// Extract YouTube video ID from URL
+const extractYouTubeVideoId = (url) => {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return null;
+};
+
 // TikTok downloader
 const downloadTikTok = async (url, quality = 'highest') => {
   try {
     console.log(`Downloading TikTok video with quality: ${quality}`);
 
-    // First try yt-dlp for watermark-free download
-    try {
-      console.log('Trying yt-dlp for TikTok (watermark-free)...');
-      const outputFilename = generateUniqueFilename('mp4');
-      const outputPath = path.join(tempDir, outputFilename);
+    // Test if yt-dlp is available
+    const ytDlpAvailable = await testYtDlp();
+
+    if (ytDlpAvailable) {
+      // First try yt-dlp for watermark-free download
+      try {
+        console.log('Trying yt-dlp for TikTok (watermark-free)...');
+        const outputFilename = generateUniqueFilename('mp4');
+        const outputPath = path.join(tempDir, outputFilename);
 
       // Get video info first
       const infoJsonPath = path.join(tempDir, `${uuidv4()}.info.json`);
@@ -596,8 +723,15 @@ const downloadTikTok = async (url, quality = 'highest') => {
         watermarkFree: true
       };
 
-    } catch (ytdlpError) {
-      console.log('yt-dlp failed for TikTok, trying watermark-free APIs:', ytdlpError.message);
+      } catch (ytdlpError) {
+        console.log('yt-dlp failed for TikTok, trying watermark-free APIs:', ytdlpError.message);
+      }
+    } else {
+      console.log('yt-dlp not available, using API-only approach for TikTok');
+    }
+
+    // API fallback approach (works without yt-dlp)
+    try {
 
       // First try SnapTik GitHub API (most reliable)
       try {
@@ -1042,6 +1176,16 @@ const downloadTikTok = async (url, quality = 'highest') => {
 // Instagram downloader
 const downloadInstagram = async (url, quality = 'highest') => {
   try {
+    console.log(`Downloading Instagram media with quality: ${quality}`);
+
+    // Test if yt-dlp is available
+    const ytDlpAvailable = await testYtDlp();
+
+    if (!ytDlpAvailable) {
+      console.log('❌ yt-dlp not available, using API fallback for Instagram');
+      return await downloadInstagramAPI(url, quality);
+    }
+
     // First try with yt-dlp as it's more reliable
     try {
       const outputFilename = generateUniqueFilename('mp4');
@@ -1269,6 +1413,51 @@ const downloadInstagram = async (url, quality = 'highest') => {
   } catch (error) {
     console.error('Instagram download error:', error);
     throw new Error('Failed to download from Instagram');
+  }
+};
+
+// Instagram API fallback when yt-dlp is not available
+const downloadInstagramAPI = async (url, quality = 'highest') => {
+  try {
+    console.log('🔄 Using Instagram API fallback...');
+
+    const instructions = `
+📸 INSTAGRAM MEDIA DOWNLOAD
+
+📋 HƯỚNG DẪN TẢI XUỐNG:
+1. Truy cập: https://snapinsta.app/
+2. Dán link Instagram: ${url}
+3. Nhấn "Download" để tải về
+
+⚡ HOẶC SỬ DỤNG:
+- https://instaloader.github.io/
+- https://downloadgram.com/
+- https://instasave.website/
+
+🔗 Link gốc: ${url}
+
+⏱️ THỜI GIAN XỬ LÝ: Ngay lập tức
+📞 HỖ TRỢ: Liên hệ quản trị viên nếu cần
+`;
+
+    return {
+      title: 'Instagram Media Download',
+      source: 'Instagram',
+      type: 'Instructions',
+      downloadUrl: null,
+      filename: 'instagram_download_instructions.txt',
+      instructions: instructions,
+      originalUrl: url,
+      platform: 'instagram',
+      requiresManualDownload: true,
+      isManualProcessing: true,
+      watermarkFree: true,
+      availableQualities: ['1080p', '720p', '480p', '360p'],
+      alternativeDownloads: []
+    };
+  } catch (error) {
+    console.error('Instagram API fallback error:', error);
+    throw new Error('Failed to process Instagram media');
   }
 };
 
