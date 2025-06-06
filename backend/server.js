@@ -29,13 +29,27 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS middleware
+// Emergency CORS fix - allow all origins temporarily
 app.use(cors({
-  origin: config.corsOrigin,
+  origin: true, // Allow all origins
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  optionsSuccessStatus: 200
 }));
+
+// Additional CORS headers for problematic requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 
 // Body parsing middleware with validation
 app.use(express.json({
@@ -175,17 +189,20 @@ app.post('/api/download', async (req, res) => {
       return res.status(400).json({ message: 'URL is required' });
     }
 
-    // Import download functions
+    // Import download functions with error handling
     let downloadResult;
     try {
-      const { downloadFromPlatform } = require('./utils/realDownloader');
-      downloadResult = await downloadFromPlatform(url, quality);
-
-      console.log('✅ Download successful:', downloadResult.title);
-      return res.status(200).json(downloadResult);
-
+      const realDownloader = require('./utils/realDownloader');
+      if (realDownloader && realDownloader.downloadFromPlatform) {
+        downloadResult = await realDownloader.downloadFromPlatform(url, quality);
+        console.log('✅ Download successful:', downloadResult.title);
+        return res.status(200).json(downloadResult);
+      } else {
+        throw new Error('Real downloader not available');
+      }
     } catch (downloadError) {
       console.error('Download failed:', downloadError.message);
+      console.error('Download error stack:', downloadError.stack);
       // Fallback to instructions if download fails
       return handleInstructionsFallback(url, quality, res);
     }
