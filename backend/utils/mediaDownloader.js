@@ -413,6 +413,15 @@ const downloadYouTube = async (url, quality = 'highest') => {
     // Return local file URL
     const downloadUrl = `/temp/${outputFilename}`;
 
+    // Debug: Verify file was created successfully
+    console.log('🔍 YouTube download verification:', {
+      outputPath,
+      exists: fs.existsSync(outputPath),
+      size: fs.existsSync(outputPath) ? fs.statSync(outputPath).size : 0,
+      downloadUrl,
+      outputFilename
+    });
+
     // Define the specific qualities we want to support
     const specificQualities = ['1080p', '720p', '480p', '360p', '240p'];
     const availableQualities = [];

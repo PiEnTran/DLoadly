@@ -61,9 +61,30 @@ app.get('/temp/:filename', (req, res) => {
     const filename = req.params.filename;
     const filePath = path.join(__dirname, 'temp', filename);
 
+    console.log('🔍 Download request:', {
+      filename,
+      filePath,
+      exists: fs.existsSync(filePath),
+      query: req.query
+    });
+
     // Check if file exists
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: 'File not found' });
+      console.error('❌ File not found:', filePath);
+
+      // List files in temp directory for debugging
+      try {
+        const tempFiles = fs.readdirSync(path.join(__dirname, 'temp'));
+        console.log('📁 Files in temp directory:', tempFiles);
+      } catch (listError) {
+        console.error('❌ Cannot list temp directory:', listError.message);
+      }
+
+      return res.status(404).json({
+        message: 'File not found',
+        requestedFile: filename,
+        filePath: filePath
+      });
     }
 
     // Get original filename from query parameter
