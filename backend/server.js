@@ -177,9 +177,9 @@ app.get('/api/health', (req, res) => {
   }
 });
 
-// Real download endpoint with actual file downloads
+// Simplified download endpoint
 app.post('/api/download', async (req, res) => {
-  console.log('🎯 Real download endpoint called');
+  console.log('🎯 Download endpoint called');
   console.log('Request body:', req.body);
 
   try {
@@ -189,70 +189,37 @@ app.post('/api/download', async (req, res) => {
       return res.status(400).json({ message: 'URL is required' });
     }
 
-    // Import download functions with error handling
-    let downloadResult;
-    try {
-      const realDownloader = require('./utils/realDownloader');
-      if (realDownloader && realDownloader.downloadFromPlatform) {
-        downloadResult = await realDownloader.downloadFromPlatform(url, quality);
-        console.log('✅ Download successful:', downloadResult.title);
-        return res.status(200).json(downloadResult);
-      } else {
-        throw new Error('Real downloader not available');
-      }
-    } catch (downloadError) {
-      console.error('Download failed:', downloadError.message);
-      console.error('Download error stack:', downloadError.stack);
-      // Fallback to instructions if download fails
-      return handleInstructionsFallback(url, quality, res);
-    }
-  } catch (error) {
-    console.error('Emergency download error:', error);
-    return res.status(500).json({
-      message: error.message || 'An error occurred while processing your request'
-    });
-  }
-});
-
-// Instructions fallback function
-const handleInstructionsFallback = (url, quality, res) => {
-  console.log('🔄 Falling back to instructions mode');
-
-  const detectPlatform = (url) => {
+    // Simple platform detection
+    let platform = 'unknown';
     try {
       const urlObj = new URL(url);
       const hostname = urlObj.hostname.toLowerCase();
 
       if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-        return 'youtube';
+        platform = 'youtube';
       } else if (hostname.includes('tiktok.com')) {
-        return 'tiktok';
+        platform = 'tiktok';
       } else if (hostname.includes('instagram.com')) {
-        return 'instagram';
+        platform = 'instagram';
       } else if (hostname.includes('facebook.com') || hostname.includes('fb.com')) {
-        return 'facebook';
+        platform = 'facebook';
       } else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
-        return 'twitter';
+        platform = 'twitter';
       } else if (hostname.includes('fshare.vn')) {
-        return 'fshare';
-      } else {
-        return 'unknown';
+        platform = 'fshare';
       }
     } catch (error) {
-      return 'unknown';
+      console.error('URL parsing error:', error);
     }
-  };
 
-  const platform = detectPlatform(url);
+    if (platform === 'unknown') {
+      return res.status(400).json({
+        message: 'Nền tảng không được hỗ trợ. Hiện tại chúng tôi hỗ trợ YouTube, TikTok, Instagram, Facebook, Twitter, và Fshare.'
+      });
+    }
 
-  if (platform === 'unknown') {
-    return res.status(400).json({
-      message: 'Nền tảng không được hỗ trợ. Hiện tại chúng tôi hỗ trợ YouTube, TikTok, Instagram, Facebook, Twitter, và Fshare.'
-    });
-  }
-
-  const instructions = `
-🎥 ${platform.toUpperCase()} VIDEO DOWNLOAD
+    // Return instructions
+    const instructions = `🎥 ${platform.toUpperCase()} VIDEO DOWNLOAD
 
 📋 HƯỚNG DẪN TẢI XUỐNG:
 1. Truy cập: https://www.y2mate.com/ (cho YouTube)
@@ -267,27 +234,37 @@ const handleInstructionsFallback = (url, quality, res) => {
 🎯 Quality: ${quality || 'default'}
 
 ⏱️ THỜI GIAN XỬ LÝ: Ngay lập tức
-📞 HỖ TRỢ: Liên hệ quản trị viên nếu cần
-`;
+📞 HỖ TRỢ: Liên hệ quản trị viên nếu cần`;
 
-  const result = {
-    title: `${platform} Video Download`,
-    source: platform,
-    type: 'Instructions',
-    downloadUrl: null,
-    filename: `${platform}_download_instructions.txt`,
-    instructions: instructions,
-    originalUrl: url,
-    platform: platform,
-    requiresManualDownload: true,
-    isManualProcessing: true,
-    watermarkFree: true,
-    availableQualities: ['1080p', '720p', '480p', '360p', '240p'],
-    alternativeDownloads: []
-  };
+    const result = {
+      title: `${platform} Video Download`,
+      source: platform,
+      type: 'Instructions',
+      downloadUrl: null,
+      filename: `${platform}_download_instructions.txt`,
+      instructions: instructions,
+      originalUrl: url,
+      platform: platform,
+      requiresManualDownload: true,
+      isManualProcessing: true,
+      watermarkFree: true,
+      availableQualities: ['1080p', '720p', '480p', '360p', '240p'],
+      alternativeDownloads: []
+    };
 
-  return res.status(200).json(result);
-};
+    console.log('✅ Instructions response prepared');
+    return res.status(200).json(result);
+
+  } catch (error) {
+    console.error('Download endpoint error:', error);
+    return res.status(500).json({
+      message: 'Server error occurred',
+      error: error.message
+    });
+  }
+});
+
+
 
 // Emergency test endpoint
 app.get('/api/test', (req, res) => {
