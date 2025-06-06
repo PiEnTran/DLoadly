@@ -1,14 +1,38 @@
 const express = require('express');
 const router = express.Router();
-const {
-  downloadYouTube,
-  downloadTikTok,
-  downloadInstagram,
-  downloadFacebook,
-  downloadTwitter,
-  downloadFshare
-} = require('../utils/mediaDownloader');
-const downloadManager = require('../services/downloadManager');
+
+// Test route to verify router is working
+router.get('/test', (req, res) => {
+  res.json({
+    message: 'Download routes are working!',
+    timestamp: new Date().toISOString(),
+    routes: ['POST /download', 'GET /test']
+  });
+});
+
+// Import dependencies with error handling
+let downloadYouTube, downloadTikTok, downloadInstagram, downloadFacebook, downloadTwitter, downloadFshare;
+let downloadManager;
+
+try {
+  const mediaDownloader = require('../utils/mediaDownloader');
+  downloadYouTube = mediaDownloader.downloadYouTube;
+  downloadTikTok = mediaDownloader.downloadTikTok;
+  downloadInstagram = mediaDownloader.downloadInstagram;
+  downloadFacebook = mediaDownloader.downloadFacebook;
+  downloadTwitter = mediaDownloader.downloadTwitter;
+  downloadFshare = mediaDownloader.downloadFshare;
+  console.log('✅ Media downloader loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading media downloader:', error.message);
+}
+
+try {
+  downloadManager = require('../services/downloadManager');
+  console.log('✅ Download manager loaded successfully');
+} catch (error) {
+  console.error('❌ Error loading download manager:', error.message);
+}
 
 // Determine platform from URL
 const getPlatform = (url) => {
@@ -35,6 +59,18 @@ const getPlatform = (url) => {
 // Main download endpoint
 router.post('/download', async (req, res) => {
   try {
+    console.log('🎯 Download endpoint called');
+    console.log('Request body:', req.body);
+
+    // Check if required dependencies are loaded
+    if (!downloadYouTube || !downloadManager) {
+      console.error('❌ Required dependencies not loaded');
+      return res.status(500).json({
+        message: 'Server configuration error - dependencies not loaded',
+        error: 'DEPENDENCIES_NOT_LOADED'
+      });
+    }
+
     const { url, quality } = req.body;
 
     console.log('Received download request for URL:', url);
