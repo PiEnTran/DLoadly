@@ -163,6 +163,30 @@ app.get('/api/health', (req, res) => {
   }
 });
 
+// Emergency download endpoint (direct in server.js)
+app.post('/api/download', (req, res) => {
+  console.log('🚨 Emergency download endpoint called');
+  console.log('Request body:', req.body);
+
+  res.json({
+    message: 'Emergency download endpoint working',
+    timestamp: new Date().toISOString(),
+    body: req.body,
+    note: 'This is a temporary endpoint to test routing'
+  });
+});
+
+// Emergency test endpoint
+app.get('/api/test', (req, res) => {
+  console.log('🚨 Emergency test endpoint called');
+
+  res.json({
+    message: 'Emergency test endpoint working',
+    timestamp: new Date().toISOString(),
+    note: 'Routes are working in server.js'
+  });
+});
+
 // Debug endpoint for CORS configuration
 app.get('/api/debug/cors', (req, res) => {
   console.log('CORS debug request received');
