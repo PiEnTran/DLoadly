@@ -55,8 +55,71 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Static files
-app.use('/temp', express.static(path.join(__dirname, 'temp')));
+// Custom download route with proper headers
+app.get('/temp/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const filePath = path.join(__dirname, 'temp', filename);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    // Get original filename from query parameter
+    const originalFilename = req.query.filename || filename;
+
+    // Determine MIME type based on file extension
+    const ext = path.extname(originalFilename).toLowerCase();
+    let mimeType = 'application/octet-stream';
+
+    const mimeTypes = {
+      '.mp4': 'video/mp4',
+      '.mp3': 'audio/mpeg',
+      '.wav': 'audio/wav',
+      '.avi': 'video/x-msvideo',
+      '.mov': 'video/quicktime',
+      '.wmv': 'video/x-ms-wmv',
+      '.flv': 'video/x-flv',
+      '.webm': 'video/webm',
+      '.mkv': 'video/x-matroska',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.pdf': 'application/pdf',
+      '.zip': 'application/zip',
+      '.rar': 'application/x-rar-compressed'
+    };
+
+    if (mimeTypes[ext]) {
+      mimeType = mimeTypes[ext];
+    }
+
+    // Set headers to force download
+    res.setHeader('Content-Disposition', `attachment; filename="${originalFilename}"`);
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+
+    fileStream.on('error', (error) => {
+      console.error('Error streaming file:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error downloading file' });
+      }
+    });
+
+    console.log(`File download started: ${originalFilename}`);
+  } catch (error) {
+    console.error('Download route error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

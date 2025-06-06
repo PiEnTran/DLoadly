@@ -55,10 +55,23 @@ const MediaDisplay = ({ mediaData, loading, error }) => {
       .catch(() => toast.error('Không thể sao chép link'));
   };
 
-  const handleDownload = () => {
+  const handleDownload = (e) => {
     setDownloadStarted(true);
     toast.success('Bắt đầu tải xuống!');
-    // The actual download happens via the href attribute
+
+    // For better UX, we can also trigger download programmatically
+    if (displayData.downloadUrl) {
+      // Create a temporary link element for download
+      const link = document.createElement('a');
+      link.href = displayData.downloadUrl;
+      link.download = displayData.filename || 'download';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Prevent the default anchor behavior since we're handling it manually
+      e.preventDefault();
+    }
   };
 
   const getPlatformIcon = (source) => {
@@ -400,9 +413,7 @@ const MediaDisplay = ({ mediaData, loading, error }) => {
             {/* Main download button */}
             <a
               href={displayData.downloadUrl}
-              download={false}
-              target="_blank"
-              rel="noopener noreferrer"
+              download={displayData.filename || true}
               onClick={handleDownload}
               className="flex-1 flex items-center justify-center py-3 px-6 rounded-xl shadow-md text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform transition-all hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
