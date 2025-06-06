@@ -164,16 +164,91 @@ app.get('/api/health', (req, res) => {
 });
 
 // Emergency download endpoint (direct in server.js)
-app.post('/api/download', (req, res) => {
+app.post('/api/download', async (req, res) => {
   console.log('🚨 Emergency download endpoint called');
   console.log('Request body:', req.body);
 
-  res.json({
-    message: 'Emergency download endpoint working',
-    timestamp: new Date().toISOString(),
-    body: req.body,
-    note: 'This is a temporary endpoint to test routing'
-  });
+  try {
+    const { url, quality } = req.body;
+
+    if (!url) {
+      return res.status(400).json({ message: 'URL is required' });
+    }
+
+    // Detect platform
+    const detectPlatform = (url) => {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.toLowerCase();
+
+      if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
+        return 'youtube';
+      } else if (hostname.includes('tiktok.com')) {
+        return 'tiktok';
+      } else if (hostname.includes('instagram.com')) {
+        return 'instagram';
+      } else if (hostname.includes('facebook.com') || hostname.includes('fb.com')) {
+        return 'facebook';
+      } else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
+        return 'twitter';
+      } else if (hostname.includes('fshare.vn')) {
+        return 'fshare';
+      } else {
+        return 'unknown';
+      }
+    };
+
+    const platform = detectPlatform(url);
+    console.log('Detected platform:', platform);
+
+    if (platform === 'unknown') {
+      return res.status(400).json({
+        message: 'Nền tảng không được hỗ trợ. Hiện tại chúng tôi hỗ trợ YouTube, TikTok, Instagram, Facebook, Twitter, và Fshare.'
+      });
+    }
+
+    // For now, return instructions for manual download
+    const instructions = `
+🎥 ${platform.toUpperCase()} VIDEO DOWNLOAD
+
+📋 HƯỚNG DẪN TẢI XUỐNG:
+1. Truy cập: https://www.y2mate.com/ (cho YouTube)
+2. Hoặc: https://snapinsta.app/ (cho Instagram)
+3. Hoặc: https://snaptik.app/ (cho TikTok)
+4. Dán link: ${url}
+5. Chọn chất lượng mong muốn
+6. Nhấn "Download" để tải về
+
+🔗 Link gốc: ${url}
+📱 Platform: ${platform}
+🎯 Quality: ${quality || 'default'}
+
+⏱️ THỜI GIAN XỬ LÝ: Ngay lập tức
+📞 HỖ TRỢ: Liên hệ quản trị viên nếu cần
+`;
+
+    const result = {
+      title: `${platform} Video Download`,
+      source: platform,
+      type: 'Instructions',
+      downloadUrl: null,
+      filename: `${platform}_download_instructions.txt`,
+      instructions: instructions,
+      originalUrl: url,
+      platform: platform,
+      requiresManualDownload: true,
+      isManualProcessing: true,
+      watermarkFree: true,
+      availableQualities: ['1080p', '720p', '480p', '360p', '240p'],
+      alternativeDownloads: []
+    };
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Emergency download error:', error);
+    return res.status(500).json({
+      message: error.message || 'An error occurred while processing your request'
+    });
+  }
 });
 
 // Emergency test endpoint
