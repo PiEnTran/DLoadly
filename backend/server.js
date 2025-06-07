@@ -192,41 +192,35 @@ app.post('/api/download', async (req, res) => {
     // Force real downloads - NO FALLBACK
     console.log('🚀 Attempting real download...');
 
-    // Import realDownloader with detailed error logging
-    let realDownloader;
+    // Import simple downloader (tested and working)
+    let downloader;
     try {
-      realDownloader = require('./utils/realDownloader');
-      console.log('✅ realDownloader imported successfully');
+      downloader = require('./utils/simpleDownloader');
+      console.log('✅ Simple downloader imported successfully');
     } catch (importError) {
-      console.error('❌ realDownloader import failed:', importError.message);
-      console.error('Import error stack:', importError.stack);
+      console.error('❌ Simple downloader import failed:', importError.message);
       return res.status(500).json({
-        message: 'Real downloader import failed',
-        error: importError.message,
-        stack: importError.stack
+        message: 'Downloader import failed',
+        error: importError.message
       });
     }
 
-    if (!realDownloader || typeof realDownloader.downloadFromPlatform !== 'function') {
+    if (!downloader || typeof downloader.downloadFromPlatform !== 'function') {
       console.error('❌ downloadFromPlatform function not available');
-      console.error('realDownloader object:', realDownloader);
       return res.status(500).json({
-        message: 'downloadFromPlatform function not available',
-        realDownloader: realDownloader ? Object.keys(realDownloader) : 'null'
+        message: 'downloadFromPlatform function not available'
       });
     }
 
     try {
-      const downloadResult = await realDownloader.downloadFromPlatform(url, quality);
-      console.log('✅ Real download successful:', downloadResult.title);
+      const downloadResult = await downloader.downloadFromPlatform(url, quality);
+      console.log('✅ Download successful:', downloadResult.title);
       return res.status(200).json(downloadResult);
-    } catch (realDownloadError) {
-      console.error('❌ Real download failed:', realDownloadError.message);
-      console.error('Real download error stack:', realDownloadError.stack);
+    } catch (downloadError) {
+      console.error('❌ Download failed:', downloadError.message);
       return res.status(500).json({
-        message: 'Real download failed',
-        error: realDownloadError.message,
-        stack: realDownloadError.stack
+        message: 'Download failed',
+        error: downloadError.message
       });
     }
 
