@@ -177,9 +177,9 @@ app.get('/api/health', (req, res) => {
   }
 });
 
-// Simplified download endpoint
+// Real download endpoint - actual file downloads
 app.post('/api/download', async (req, res) => {
-  console.log('🎯 Download endpoint called');
+  console.log('🎯 Real download endpoint called');
   console.log('Request body:', req.body);
 
   try {
@@ -189,6 +189,47 @@ app.post('/api/download', async (req, res) => {
       return res.status(400).json({ message: 'URL is required' });
     }
 
+    // Try real downloads first, fallback to instructions if failed
+    try {
+      console.log('🚀 Attempting real download...');
+
+      // Import realDownloader with safety checks
+      let realDownloader;
+      try {
+        realDownloader = require('./utils/realDownloader');
+      } catch (importError) {
+        console.log('⚠️ realDownloader import failed:', importError.message);
+        throw new Error('Real downloader not available');
+      }
+
+      if (realDownloader && typeof realDownloader.downloadFromPlatform === 'function') {
+        const downloadResult = await realDownloader.downloadFromPlatform(url, quality);
+        console.log('✅ Real download successful:', downloadResult.title);
+        return res.status(200).json(downloadResult);
+      } else {
+        throw new Error('downloadFromPlatform function not available');
+      }
+
+    } catch (realDownloadError) {
+      console.log('❌ Real download failed:', realDownloadError.message);
+      console.log('🔄 Falling back to instructions...');
+
+      // Fallback to instructions
+      return handleInstructionsFallback(url, quality, res);
+    }
+
+  } catch (error) {
+    console.error('Download endpoint error:', error);
+    return res.status(500).json({
+      message: 'Server error occurred',
+      error: error.message
+    });
+  }
+});
+
+// Instructions fallback function
+const handleInstructionsFallback = (url, quality, res) => {
+  try {
     // Simple platform detection
     let platform = 'unknown';
     try {
@@ -218,7 +259,7 @@ app.post('/api/download', async (req, res) => {
       });
     }
 
-    // Return instructions
+    // Return instructions as fallback
     const instructions = `🎥 ${platform.toUpperCase()} VIDEO DOWNLOAD
 
 📋 HƯỚNG DẪN TẢI XUỐNG:
@@ -233,7 +274,7 @@ app.post('/api/download', async (req, res) => {
 📱 Platform: ${platform}
 🎯 Quality: ${quality || 'default'}
 
-⏱️ THỜI GIAN XỬ LÝ: Ngay lập tức
+⚠️ LƯU Ý: Hệ thống đang bảo trì, vui lòng sử dụng hướng dẫn tạm thời
 📞 HỖ TRỢ: Liên hệ quản trị viên nếu cần`;
 
     const result = {
@@ -252,17 +293,17 @@ app.post('/api/download', async (req, res) => {
       alternativeDownloads: []
     };
 
-    console.log('✅ Instructions response prepared');
+    console.log('✅ Instructions fallback response prepared');
     return res.status(200).json(result);
 
   } catch (error) {
-    console.error('Download endpoint error:', error);
+    console.error('Instructions fallback error:', error);
     return res.status(500).json({
       message: 'Server error occurred',
       error: error.message
     });
   }
-});
+};
 
 
 

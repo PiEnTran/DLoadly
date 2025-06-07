@@ -46,46 +46,69 @@ const detectPlatform = (url) => {
 const downloadYouTube = async (url, quality = 'highest') => {
   try {
     console.log('🎥 Downloading YouTube video...');
-    
-    // Try yt-dlp-wrap first
+
+    // Try yt-dlp-wrap first with better error handling
     try {
+      console.log('Attempting yt-dlp-wrap import...');
       const YTDlpWrap = require('yt-dlp-wrap').default;
+
+      if (!YTDlpWrap) {
+        throw new Error('YTDlpWrap not available');
+      }
+
       const ytDlpWrap = new YTDlpWrap();
-      
       const outputFilename = generateUniqueFilename('mp4');
       const outputPath = path.join(tempDir, outputFilename);
-      
-      // Download with yt-dlp-wrap
-      await ytDlpWrap.exec([
+
+      console.log('Starting yt-dlp download...');
+
+      // Download with yt-dlp-wrap with timeout
+      const downloadPromise = ytDlpWrap.exec([
         url,
         '-o', outputPath,
         '-f', 'best[ext=mp4]/best',
-        '--no-warnings'
+        '--no-warnings',
+        '--no-check-certificate'
       ]);
-      
-      // Verify file exists
-      if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 0) {
-        console.log('✅ YouTube download successful with yt-dlp-wrap');
-        
-        return {
-          title: 'YouTube Video',
-          source: 'YouTube',
-          type: 'Video',
-          downloadUrl: `/temp/${outputFilename}`,
-          filename: `YouTube_Video_${quality || 'default'}.mp4`,
-          originalUrl: url,
-          watermarkFree: true,
-          availableQualities: ['1080p', '720p', '480p', '360p', '240p'],
-          alternativeDownloads: []
-        };
+
+      // Add timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Download timeout')), 30000); // 30 seconds
+      });
+
+      await Promise.race([downloadPromise, timeoutPromise]);
+
+      // Verify file exists and has content
+      if (fs.existsSync(outputPath)) {
+        const stats = fs.statSync(outputPath);
+        if (stats.size > 1000) { // At least 1KB
+          console.log('✅ YouTube download successful with yt-dlp-wrap');
+
+          return {
+            title: 'YouTube Video',
+            source: 'YouTube',
+            type: 'Video',
+            downloadUrl: `/temp/${outputFilename}?filename=${encodeURIComponent(`YouTube_Video_${quality || 'default'}.mp4`)}`,
+            filename: `YouTube_Video_${quality || 'default'}.mp4`,
+            originalUrl: url,
+            watermarkFree: true,
+            availableQualities: ['1080p', '720p', '480p', '360p', '240p'],
+            alternativeDownloads: []
+          };
+        } else {
+          console.log('Downloaded file too small, removing...');
+          fs.unlinkSync(outputPath);
+          throw new Error('Downloaded file is too small');
+        }
+      } else {
+        throw new Error('Download file not created');
       }
+
     } catch (ytDlpError) {
       console.log('yt-dlp-wrap failed:', ytDlpError.message);
+      throw new Error(`YouTube download failed: ${ytDlpError.message}`);
     }
-    
-    // Fallback to API approach
-    return await downloadYouTubeAPI(url, quality);
-    
+
   } catch (error) {
     console.error('YouTube download error:', error);
     throw new Error('Failed to download YouTube video');
@@ -171,9 +194,9 @@ const extractYouTubeVideoId = (url) => {
 const downloadTikTok = async (url, quality = 'highest') => {
   try {
     console.log('🎵 Downloading TikTok video...');
-    
-    // Use SnapTik API
-    const response = await axios.post('https://snaptik.app/abc2.php', 
+
+    // Use SnapTik API with better error handling
+    const response = await axios.post('https://snaptik.app/abc2.php',
       `url=${encodeURIComponent(url)}&lang=en`, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -182,60 +205,79 @@ const downloadTikTok = async (url, quality = 'highest') => {
       },
       timeout: 15000
     });
-    
+
     const html = response.data;
-    
+    console.log('SnapTik API response received');
+
     // Parse HTML to find download links
     const videoMatch = html.match(/href="([^"]*)" download[^>]*>.*?Download.*?MP4/i);
-    
+
     if (videoMatch && videoMatch[1]) {
       let videoUrl = videoMatch[1];
-      
+
       if (videoUrl.startsWith('//')) {
         videoUrl = 'https:' + videoUrl;
       }
-      
+
+      console.log('Found TikTok video URL, downloading...');
+
       // Download the video
       const outputFilename = generateUniqueFilename('mp4');
       const outputPath = path.join(tempDir, outputFilename);
-      
+
       const videoResponse = await axios({
         method: 'GET',
         url: videoUrl,
         responseType: 'stream',
-        timeout: 30000
+        timeout: 30000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
       });
-      
+
       const writer = fs.createWriteStream(outputPath);
       videoResponse.data.pipe(writer);
-      
+
       await new Promise((resolve, reject) => {
         writer.on('finish', resolve);
         writer.on('error', reject);
+
+        // Add timeout for writing
+        setTimeout(() => reject(new Error('Write timeout')), 30000);
       });
-      
-      if (fs.existsSync(outputPath) && fs.statSync(outputPath).size > 0) {
-        console.log('✅ TikTok download successful');
-        
-        return {
-          title: 'TikTok Video',
-          source: 'TikTok',
-          type: 'Video',
-          downloadUrl: `/temp/${outputFilename}`,
-          filename: `TikTok_Video_${quality || 'HD'}.mp4`,
-          originalUrl: url,
-          watermarkFree: true,
-          availableQualities: ['HD', '720p', '480p'],
-          alternativeDownloads: []
-        };
+
+      // Verify file exists and has content
+      if (fs.existsSync(outputPath)) {
+        const stats = fs.statSync(outputPath);
+        if (stats.size > 1000) { // At least 1KB
+          console.log('✅ TikTok download successful');
+
+          return {
+            title: 'TikTok Video',
+            source: 'TikTok',
+            type: 'Video',
+            downloadUrl: `/temp/${outputFilename}?filename=${encodeURIComponent(`TikTok_Video_${quality || 'HD'}.mp4`)}`,
+            filename: `TikTok_Video_${quality || 'HD'}.mp4`,
+            originalUrl: url,
+            watermarkFree: true,
+            availableQualities: ['HD', '720p', '480p'],
+            alternativeDownloads: []
+          };
+        } else {
+          console.log('Downloaded TikTok file too small, removing...');
+          fs.unlinkSync(outputPath);
+          throw new Error('Downloaded file is too small');
+        }
+      } else {
+        throw new Error('TikTok download file not created');
       }
     }
-    
-    throw new Error('Failed to extract TikTok video URL');
-    
+
+    throw new Error('Failed to extract TikTok video URL from SnapTik');
+
   } catch (error) {
     console.error('TikTok download error:', error);
-    throw new Error('Failed to download TikTok video');
+    throw new Error(`Failed to download TikTok video: ${error.message}`);
   }
 };
 
